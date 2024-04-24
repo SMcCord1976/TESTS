@@ -1,0 +1,150 @@
+/*
+
+Group Name Template:
+
+	P-SQL-SOLUTIONABBREV-SDLC-schemaabbrev-executor
+	P-SQL-SOLUTIONABBREV-SDLC-schemaabbrev-owner
+	P-SQL-SOLUTIONABBREV-SDLC-schemaabbrev-writer
+	P-SQL-SOLUTIONABBREV-SDLC-schemaabbrev-reader
+	P-SQL-SOLUTIONABBREV-SDLC-schemaabbrev-unmaskedreader
+	
+Schema specification examples
+
+	....ON SCHEMA::[schemaname]
+	....WITH DEFAULT_SCHEMA=[schemaname]
+
+Find and Replace Variables:
+
+	-SOLUTIONABBREV-
+	-schemaabbrev-
+	-[schemaname]
+	-SDLC-
+
+*/
+
+
+CREATE LOGIN [P-SQL-EDW-PRD-ecrm-executor] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-EDW-PRD-ecrm-owner] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-EDW-PRD-ecrm-reader] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-EDW-PRD-ecrm-writer] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+
+
+
+USE [Rogue1]
+GO
+CREATE USER [P-SQL-EDW-PRD-ecrm-executor] FOR LOGIN [P-SQL-EDW-PRD-ecrm-executor]
+GO
+ALTER USER [P-SQL-EDW-PRD-ecrm-executor] WITH DEFAULT_SCHEMA=[ecrm]
+GO
+GRANT CREATE SEQUENCE ON SCHEMA::[ecrm] TO [P-SQL-EDW-PRD-ecrm-executor]
+GO
+GRANT EXECUTE ON SCHEMA::[ecrm] TO [P-SQL-EDW-PRD-ecrm-executor]
+GO
+GRANT REFERENCES ON SCHEMA::[ecrm] TO [P-SQL-EDW-PRD-ecrm-executor]
+GO
+GRANT SELECT ON SCHEMA::[ecrm] TO [P-SQL-EDW-PRD-ecrm-executor]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[ecrm] TO [P-SQL-EDW-PRD-ecrm-executor]
+GO
+
+
+
+CREATE USER [P-SQL-EDW-PRD-ecrm-owner] FOR LOGIN [P-SQL-EDW-PRD-ecrm-owner]
+GO
+ALTER USER [P-SQL-EDW-PRD-ecrm-owner] WITH DEFAULT_SCHEMA=[ecrm]
+GO
+GRANT CREATE TABLE TO [P-SQL-EDW-PRD-ecrm-owner]
+GO
+GRANT CREATE PROCEDURE TO [P-SQL-EDW-PRD-ecrm-owner]
+GO
+GRANT CREATE FUNCTION TO [P-SQL-EDW-PRD-ecrm-owner]
+GO
+GRANT CREATE VIEW TO [P-SQL-EDW-PRD-ecrm-owner]
+GO
+GRANT CREATE SEQUENCE ON SCHEMA::[ecrm] TO [P-SQL-EDW-PRD-ecrm-owner]
+GO
+GRANT UNMASK ON SCHEMA::[ecrm] TO [P-SQL-EDW-PRD-ecrm-owner]
+GO
+GRANT ALTER ON SCHEMA::[ecrm] TO [P-SQL-EDW-PRD-ecrm-owner]
+GO
+GRANT DELETE ON SCHEMA::[ecrm] TO [P-SQL-EDW-PRD-ecrm-owner]
+GO
+GRANT EXECUTE ON SCHEMA::[ecrm] TO [P-SQL-EDW-PRD-ecrm-owner]
+GO
+GRANT INSERT ON SCHEMA::[ecrm] TO [P-SQL-EDW-PRD-ecrm-owner]
+GO
+GRANT REFERENCES ON SCHEMA::[ecrm] TO [P-SQL-EDW-PRD-ecrm-owner]
+GO
+GRANT SELECT ON SCHEMA::[ecrm] TO [P-SQL-EDW-PRD-ecrm-owner]
+GO
+GRANT UPDATE ON SCHEMA::[ecrm] TO [P-SQL-EDW-PRD-ecrm-owner]
+GO
+GRANT VIEW CHANGE TRACKING ON SCHEMA::[ecrm] TO [P-SQL-EDW-PRD-ecrm-owner]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[ecrm] TO [P-SQL-EDW-PRD-ecrm-owner]
+GO
+
+
+
+CREATE USER [P-SQL-EDW-PRD-ecrm-writer] FOR LOGIN [P-SQL-EDW-PRD-ecrm-writer]
+GO
+ALTER USER [P-SQL-EDW-PRD-ecrm-writer] WITH DEFAULT_SCHEMA=[ecrm]
+GO
+GRANT CREATE TABLE TO [P-SQL-EDW-PRD-ecrm-writer]
+GO
+GRANT CREATE PROCEDURE TO [P-SQL-EDW-PRD-ecrm-writer]
+GO
+GRANT CREATE FUNCTION TO [P-SQL-EDW-PRD-ecrm-owner]
+GO
+GRANT CREATE VIEW TO [P-SQL-EDW-PRD-ecrm-owner]
+GO
+GRANT DELETE ON SCHEMA::[ecrm] TO [P-SQL-EDW-PRD-ecrm-writer]
+GO
+GRANT INSERT ON SCHEMA::[ecrm] TO [P-SQL-EDW-PRD-ecrm-writer]
+GO
+GRANT REFERENCES ON SCHEMA::[ecrm] TO [P-SQL-EDW-PRD-ecrm-writer]
+GO
+GRANT SELECT ON SCHEMA::[ecrm] TO [P-SQL-EDW-PRD-ecrm-writer]
+GO
+GRANT UPDATE ON SCHEMA::[ecrm] TO [P-SQL-EDW-PRD-ecrm-writer]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[ecrm] TO [P-SQL-EDW-PRD-ecrm-writer]
+GO
+
+
+
+
+CREATE USER [P-SQL-EDW-PRD-ecrm-reader] FOR LOGIN [P-SQL-EDW-PRD-ecrm-reader]
+GO
+ALTER USER [P-SQL-EDW-PRD-ecrm-reader] WITH DEFAULT_SCHEMA=[ecrm]
+GO
+GRANT REFERENCES ON SCHEMA::[ecrm] TO [P-SQL-EDW-PRD-ecrm-reader]
+GO
+GRANT SELECT ON SCHEMA::[ecrm] TO [P-SQL-EDW-PRD-ecrm-reader]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[ecrm] TO [P-SQL-EDW-PRD-ecrm-reader]
+GO
+
+
+
+
+CREATE USER [P-SQL-EDW-PRD-ecrm-unmaskedreader] FOR LOGIN [P-SQL-EDW-PRD-ecrm-unmaskedreader]
+GO
+ALTER USER [P-SQL-EDW-PRD-ecrm-unmaskedreader] WITH DEFAULT_SCHEMA=[ecrm]
+GO
+GRANT UNMASK ON SCHEMA::[ecrm] TO [P-SQL-EDW-PRD-ecrm-unmaskedreader]
+GO
+GRANT REFERENCES ON SCHEMA::[ecrm] TO [P-SQL-EDW-PRD-ecrm-unmaskedreader]
+GO
+GRANT SELECT ON SCHEMA::[ecrm] TO [P-SQL-EDW-PRD-ecrm-unmaskedreader]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[ecrm] TO [P-SQL-EDW-PRD-ecrm-unmaskedreader]
+GO
+
+
+
+
