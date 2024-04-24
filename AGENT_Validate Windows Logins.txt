@@ -1,0 +1,180 @@
+USE [msdb]
+GO
+
+/****** Object:  Job [[DBA] - Validate Windows Logins]    Script Date: 4/24/2024 1:22:19 PM ******/
+BEGIN TRANSACTION
+DECLARE @ReturnCode INT
+SELECT @ReturnCode = 0
+/****** Object:  JobCategory [[Uncategorized (Local)]]    Script Date: 4/24/2024 1:22:20 PM ******/
+IF NOT EXISTS (SELECT name FROM msdb.dbo.syscategories WHERE name=N'[Uncategorized (Local)]' AND category_class=1)
+BEGIN
+EXEC @ReturnCode = msdb.dbo.sp_add_category @class=N'JOB', @type=N'LOCAL', @name=N'[Uncategorized (Local)]'
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+
+END
+
+DECLARE @jobId BINARY(16)
+EXEC @ReturnCode =  msdb.dbo.sp_add_job @job_name=N'[DBA] - Validate Windows Logins', 
+		@enabled=1, 
+		@notify_level_eventlog=0, 
+		@notify_level_email=0, 
+		@notify_level_netsend=0, 
+		@notify_level_page=0, 
+		@delete_level=0, 
+		@description=N'No description available.', 
+		@category_name=N'[Uncategorized (Local)]', 
+		@owner_login_name=N'sa', @job_id = @jobId OUTPUT
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+/****** Object:  Step [Clear history table]    Script Date: 4/24/2024 1:22:21 PM ******/
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'Clear history table', 
+		@step_id=1, 
+		@cmdexec_success_code=0, 
+		@on_success_action=3, 
+		@on_success_step_id=0, 
+		@on_fail_action=2, 
+		@on_fail_step_id=0, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'--clear history from temp table
+TRUNCATE TABLE spc_dba_utilities.dbo.dba_tmp_windowslogincheck', 
+		@database_name=N'master', 
+		@flags=4
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+/****** Object:  Step [Generate and send report]    Script Date: 4/24/2024 1:22:21 PM ******/
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'Generate and send report', 
+		@step_id=2, 
+		@cmdexec_success_code=0, 
+		@on_success_action=1, 
+		@on_success_step_id=0, 
+		@on_fail_action=2, 
+		@on_fail_step_id=0, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'
+--execute proc
+
+EXEC [spc_dba_utilities].[dbo].[dba_sp_windows_login_check]
+
+
+--Dump proc output into #temp table
+
+SELECT * INTO #windowslogincheck
+FROM spc_dba_utilities.dbo.dba_tmp_windowslogincheck
+
+
+DECLARE @CountValue INT
+SELECT @CountValue = COUNT(*)
+FROM spc_dba_utilities.dbo.dba_tmp_windowslogincheck
+
+IF (@CountValue = 0)
+BEGIN 
+
+--Declare variables
+DECLARE @ServerName VARCHAR(255)
+DECLARE @MailSubject VARCHAR(255)
+DECLARE @CombinedSubject VARCHAR(255)
+--DECLARE @xml NVARCHAR(MAX) --XML VARIABLE DECLARED IN ORPHANS DETECTED SECTION
+DECLARE @blankbody NVARCHAR(MAX)
+
+--Set variables
+SET @ServerName =  @@SERVERNAME
+SET @MailSubject = ''[FOR INFORMATION / REVIEW] - Weekly Windows Login Validity Check '' + @@SERVERNAME
+SET @CombinedSubject = @ServerName + @MailSubject
+
+
+SET @blankbody = ''NO WINDOWS LOGINS DETECTED ON THE INSTANCE
+
+~*~NFAR~*~''
+
+--Trigger the email 
+EXEC msdb.dbo.sp_send_dbmail
+	@profile_name = ''SQLServer''
+,	@recipients = ''stephen.mccord@sierraspace.com''
+,	@subject = @MailSubject
+,	@body = @blankbody
+,   @body_format = ''HTML'';
+
+END
+
+
+ELSE 
+
+BEGIN
+
+--Declare variables
+--DECLARE @ServerName VARCHAR(255) --VARIABLE DECLARED IN ZERO ACCOUNTS SECTION
+--DECLARE @MailSubject VARCHAR(255) --VARIABLE DECLARED IN ZERO ACCOUNTSSECTION
+--DECLARE @CombinedSubject VARCHAR(255) --VARIABLE DECLARED IN ZERO ACCOUNTS SECTION
+DECLARE @xml NVARCHAR(MAX)
+DECLARE @body NVARCHAR(MAX)
+
+--Set variables
+SET @ServerName =  @@SERVERNAME
+SET @MailSubject = ''[FOR INFORMATION / REVIEW] - Weekly Windows Login Validity Check '' + @@SERVERNAME
+SET @CombinedSubject = @ServerName + @MailSubject
+
+
+
+SET @xml = CAST(( SELECT [LoginName] AS ''td'','''',[ADUserName] AS ''td'','''',[IsDisabled] AS ''td'',''''
+FROM  #windowslogincheck 
+ORDER BY [ADUserName]
+FOR XML PATH(''tr''), ELEMENTS ) AS NVARCHAR(MAX))
+
+
+SET @body = ''<html><body><H3>Windows Authenticated Logins</H3>
+Below is a distribution of Windows Authenticated Logins present on '' + @@SERVERNAME + 
+
+''
+<BR><BR>
+In the first column is the name of the Account as it appears in SQL Server.
+<BR><BR>
+In the second column is the actual user name attached to the account as it appears in Active Directory.
+<BR><BR>
+In the third column, is a bit-flag indicator illustrating whether or not the account is enabled (0) or disabled (1) within Active Directory.
+<BR><BR>
+Accounts that are disabled in Active Directory are unable to access SQL Server.
+
+<BR><BR>
+<table border = 1> 
+<tr>
+<th> LOGIN NAME </th> <th> ACTIVE DIRECTORY NAME </th> <th> IS DISABLED </th>
+</tr>''    
+
+
+SET @body = @body + @xml +''</table></body></html> 
+<BR><BR>
+Regards,
+<BR>
+SierraSpace Database Services'' 
+
+--Trigger the email 
+EXEC msdb.dbo.sp_send_dbmail
+	@profile_name = ''SQLServer''
+,	@recipients = ''stephen.mccord@sierraspace.com''
+,	@subject = @MailSubject
+,	@body = @body
+,   @body_format = ''HTML'';
+
+END
+
+
+--Drop the session temp table
+DROP TABLE #windowslogincheck
+
+', 
+		@database_name=N'master', 
+		@flags=4
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_update_job @job_id = @jobId, @start_step_id = 1
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_add_jobserver @job_id = @jobId, @server_name = N'(local)'
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+COMMIT TRANSACTION
+GOTO EndSave
+QuitWithRollback:
+    IF (@@TRANCOUNT > 0) ROLLBACK TRANSACTION
+EndSave:
+GO
+

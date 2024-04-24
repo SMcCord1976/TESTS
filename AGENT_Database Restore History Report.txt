@@ -1,0 +1,203 @@
+USE [msdb]
+GO
+
+/****** Object:  Job [[DBA] - Database Restore History Report]    Script Date: 4/24/2024 1:17:49 PM ******/
+BEGIN TRANSACTION
+DECLARE @ReturnCode INT
+SELECT @ReturnCode = 0
+/****** Object:  JobCategory [[Uncategorized (Local)]]    Script Date: 4/24/2024 1:17:49 PM ******/
+IF NOT EXISTS (SELECT name FROM msdb.dbo.syscategories WHERE name=N'[Uncategorized (Local)]' AND category_class=1)
+BEGIN
+EXEC @ReturnCode = msdb.dbo.sp_add_category @class=N'JOB', @type=N'LOCAL', @name=N'[Uncategorized (Local)]'
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+
+END
+
+DECLARE @jobId BINARY(16)
+EXEC @ReturnCode =  msdb.dbo.sp_add_job @job_name=N'[DBA] - Database Restore History Report', 
+		@enabled=1, 
+		@notify_level_eventlog=0, 
+		@notify_level_email=0, 
+		@notify_level_netsend=0, 
+		@notify_level_page=0, 
+		@delete_level=0, 
+		@description=N'No description available.', 
+		@category_name=N'[Uncategorized (Local)]', 
+		@owner_login_name=N'sa', @job_id = @jobId OUTPUT
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+/****** Object:  Step [Generate and send report]    Script Date: 4/24/2024 1:17:50 PM ******/
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'Generate and send report', 
+		@step_id=1, 
+		@cmdexec_success_code=0, 
+		@on_success_action=1, 
+		@on_success_step_id=0, 
+		@on_fail_action=2, 
+		@on_fail_step_id=0, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'
+--Put the summarized history attributes into the temp table
+SELECT distinct DestinationDBName, CAST(DBRestoreDate AS NVARCHAR(30)) AS DBRestoreDate, DBRestoredBy 
+INTO #TempDBRestoreHistory 
+FROM [spc_dba_utilities].[dbo].[dba_tmp_restorehistory]
+
+
+
+--join on this table (UserID) to determine who the UserIDs belong to:  [spc_dba_utilities].[dbo].[dba_ref_dba_userID]
+--Update the temp table to have actual user names instead of the SPC ID numbers
+UPDATE a 
+SET DBRestoredBy = b.UserName
+FROM #TempDBRestoreHistory a
+JOIN [spc_dba_utilities].[dbo].[dba_ref_dba_userID] b
+ON a.[DBRestoredBy] = b.[UserID] 
+
+
+
+-- define CSS inside the HTML head section
+DECLARE @body VARCHAR(MAX)= ''
+<html>
+<head> <style>
+ #g {color: green;}
+ #r {color: red;}
+ #yl {color: yellow;}
+ #orng {color: orange;}
+ #odd {background-color: lightgrey}
+</style> </head>'';
+ 
+DECLARE @i INT = 0
+, @pos INT
+, @s VARCHAR(MAX)
+, @ts VARCHAR(MAX)
+, @xml VARCHAR(MAX);
+
+DECLARE @recipients VARCHAR(MAX) = ''stephen.mccord@sierraspace.com; joshua.grasso@sierraspace.com'' 
+DECLARE @ServerName VARCHAR(255)
+DECLARE @MailSubject VARCHAR(255)
+DECLARE @CombinedSubject VARCHAR(255)
+
+
+--Set variables
+SET @ServerName =  @@SERVERNAME
+SET @MailSubject = ''[FOR INFORMATION / REVIEW] - Database Restore History report for '' + @@SERVERNAME
+SET @CombinedSubject = @ServerName + @MailSubject
+
+
+ 
+--get core xml string
+SET @xml = CAST(( SELECT 
+CASE WHEN (b.[recordID] >= 25 --(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24) 
+			AND b.[recordID] NOT IN (97,98))
+		THEN''zorng''+CAST(a.[DBRestoredBy] AS VARCHAR(255))
+     WHEN b.[recordID] <= 24 
+		THEN''zg''+CAST(a.[DBRestoredBy] AS VARCHAR(255))
+	 WHEN b.[recordID] IN (97,98)
+		THEN''zr''+CAST(a.[DBRestoredBy] AS VARCHAR(MAX))
+ --    ELSE CAST(b.[UserName] AS VARCHAR(255))
+     ELSE CAST(a.[DBRestoredBy] AS VARCHAR(255))
+END AS ''td''
+, ''''
+,a.[DestinationDBName] AS ''td''
+,''''
+,a.[DBRestoreDate] AS ''td''
+,''''
+--,[HostName] AS ''td''
+--,''''
+--,[LastBatch] AS ''td''
+--,''''
+FROM  #TempDBRestoreHistory a
+LEFT JOIN [spc_dba_utilities].[dbo].[dba_ref_dba_userID] b
+ON a.[DBRestoredBy] = b.[UserName]
+
+ORDER BY a.[DestinationDBName] --[LOGIN], [LastBatch]
+FOR XML PATH(''tr''), ELEMENTS ) AS NVARCHAR(MAX));
+
+
+--EVALUATE CASE STATEMENT.  COLOR TEXT FONT ACCORDINGLY. 
+SET @xml=REPLACE(@xml, ''<td>zg'', ''<td id="g">''); -- Green
+SET @xml=REPLACE(@xml, ''<td>zr'', ''<td id="r">''); -- Red
+SET @xml=REPLACE(@xml, ''<td>zyl'', ''<td id="yl">''); -- Yellow
+SET @xml=REPLACE(@xml, ''<td>zorng'', ''<td id="orng">''); -- Orange
+
+--ZEBRA STRIPE THE ROWS IN THE RESULT SET 
+SELECT @s = ''''
+, @pos = CHARINDEX(''<tr>'', @xml, 4);
+ 
+WHILE(@pos > 0)
+BEGIN
+   SET @i += 1;
+   SET @ts = SUBSTRING(@xml, 1, @pos-1)
+   IF(@i % 2 = 1)
+      set @ts = REPLACE(@ts, ''<tr>'', ''<tr id="odd">'');
+   SET @s += @ts;
+   SET @xml = SUBSTRING(@xml, @pos, LEN(@xml));
+   SET @pos =  CHARINDEX(''<tr>'', @xml, 4);
+END -- while
+-- handling the last piece
+SET @i +=1;
+SET @ts = @xml;
+IF(@i % 2 = 1)
+   SET @ts = REPLACE(@ts, ''<tr>'', ''<tr id="odd">'');
+SET @s += @ts;
+
+--WRITE RESULT SET TO EMAIL BODY
+SET @body +=''<body><H3>Database Restore History</H3>
+Below is a distribution of databases that have been restored to <H3>'' + @@SERVERNAME + 
+
+''</H3>
+
+
+<BR><BR>
+<table border = 1> 
+<tr>
+<th> Database Restored By </th> 
+<th> Database Name </th> 
+<th> Database Restore Date </th>
+
+</tr>'' 
++ @s+''</table> </body> </html>
+
+
+<BR><BR>
+Use this information to review which databases have been restored on this instance of SQL Server, and by whom, when, etc.
+
+<BR><BR>
+More detailed information can be found on '' + @@SERVERNAME + '' in [spc_dba_utilities].[dbo].[dba_tmp_restorehistory]
+
+<BR><BR>
+Regards,
+<BR>
+SierraSpace Database Services'';
+ 
+
+
+EXEC msdb.dbo.sp_send_dbmail
+@profile_name = ''SQLServer''
+--,@recipients = @recipients
+,@recipients = ''stephen.mccord@sierraspace.com'' --DEBUGGING
+,@subject = @MailSubject
+,@body = @body
+,@body_format =''HTML'';
+
+DROP TABLE #TempDBRestoreHistory;
+
+
+
+
+
+
+', 
+		@database_name=N'master', 
+		@flags=0
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_update_job @job_id = @jobId, @start_step_id = 1
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_add_jobserver @job_id = @jobId, @server_name = N'(local)'
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+COMMIT TRANSACTION
+GOTO EndSave
+QuitWithRollback:
+    IF (@@TRANCOUNT > 0) ROLLBACK TRANSACTION
+EndSave:
+GO
+

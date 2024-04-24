@@ -1,0 +1,210 @@
+USE [msdb]
+GO
+
+/****** Object:  Job [[DBA] - Captured session report]    Script Date: 4/24/2024 1:15:11 PM ******/
+BEGIN TRANSACTION
+DECLARE @ReturnCode INT
+SELECT @ReturnCode = 0
+/****** Object:  JobCategory [[Uncategorized (Local)]]    Script Date: 4/24/2024 1:15:12 PM ******/
+IF NOT EXISTS (SELECT name FROM msdb.dbo.syscategories WHERE name=N'[Uncategorized (Local)]' AND category_class=1)
+BEGIN
+EXEC @ReturnCode = msdb.dbo.sp_add_category @class=N'JOB', @type=N'LOCAL', @name=N'[Uncategorized (Local)]'
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+
+END
+
+DECLARE @jobId BINARY(16)
+EXEC @ReturnCode =  msdb.dbo.sp_add_job @job_name=N'[DBA] - Captured session report', 
+		@enabled=1, 
+		@notify_level_eventlog=0, 
+		@notify_level_email=0, 
+		@notify_level_netsend=0, 
+		@notify_level_page=0, 
+		@delete_level=0, 
+		@description=N'No description available.', 
+		@category_name=N'[Uncategorized (Local)]', 
+		@owner_login_name=N'sa', @job_id = @jobId OUTPUT
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+/****** Object:  Step [Generate and send report]    Script Date: 4/24/2024 1:15:13 PM ******/
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'Generate and send report', 
+		@step_id=1, 
+		@cmdexec_success_code=0, 
+		@on_success_action=1, 
+		@on_success_step_id=0, 
+		@on_fail_action=2, 
+		@on_fail_step_id=0, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'CREATE TABLE #Temp2
+( [SessionCount] [varchar](max),
+  [LOGIN]  [varchar](max),
+  [HostName]  [varchar](max),
+  [LastBatch] [varchar](max),
+)
+
+
+
+INSERT INTO #Temp2
+SELECT
+   count (*) AS [SESSION COUNT]
+  ,[LOGIN]
+  ,[HostName]
+  ,CONVERT(DATE, CONVERT(VARCHAR(20), DATEADD(DAY, -DATEDIFF(DAY, 0, [LastBatch]) % 7, [LastBatch]), 120)) 
+FROM [spc_dba_utilities].[dbo].[temp_sp_who2]
+WHERE [ProgramName] IS NOT NULL
+AND [ProgramName] <> '' ''
+AND [LOGIN] NOT LIKE ''NT AUTH%''
+AND [LOGIN] NOT LIKE ''NT SERVICE%''
+GROUP BY CONVERT(DATE, CONVERT(VARCHAR(20), DATEADD(DAY, -DATEDIFF(DAY, 0, [LastBatch]) % 7, [LastBatch]), 120))
+, LOGIN
+, HostName
+ORDER BY LOGIN
+, HostName
+, CONVERT(DATE, CONVERT(VARCHAR(20), DATEADD(DAY, -DATEDIFF(DAY, 0, [LastBatch]) % 7, [LastBatch]), 120)) desc;
+
+
+
+
+-- define CSS inside the HTML head section
+DECLARE @body VARCHAR(MAX)= ''
+<html>
+<head> <style>
+ #g {color: green;}
+ #r {color: red;}
+ #odd {background-color: lightgrey}
+</style> </head>'';
+ 
+DECLARE @i INT = 0
+, @pos INT
+, @s VARCHAR(MAX)
+, @ts VARCHAR(MAX)
+, @xml VARCHAR(MAX);
+
+DECLARE @recipients VARCHAR(MAX) = ''stephen.mccord@sierraspace.com; joshua.grasso@sierraspace.com; todd.kleinhans@sierraspace.com'' 
+DECLARE @ServerName VARCHAR(255)
+DECLARE @MailSubject VARCHAR(255)
+DECLARE @CombinedSubject VARCHAR(255)
+
+
+--Set variables
+SET @ServerName =  @@SERVERNAME
+SET @MailSubject = ''[FOR INFORMATION / REVIEW] - Weekly Captured Session report for '' + @@SERVERNAME
+SET @CombinedSubject = @ServerName + @MailSubject
+
+
+ 
+--get core xml string
+SET @xml = CAST(( SELECT 
+CASE WHEN [SessionCount] <=50 
+		THEN''zr''+CAST([SessionCount] AS VARCHAR(30))
+     WHEN [SessionCount] >=51 
+		THEN''zg''+CAST([SessionCount] AS VARCHAR(30))
+     ELSE CAST([SessionCount] AS VARCHAR(30))
+END AS ''td''
+, ''''
+,[LOGIN] AS ''td''
+,''''
+,[HostName] AS ''td''
+,''''
+,[LastBatch] AS ''td''
+,''''
+FROM  #Temp2
+ORDER BY [LOGIN], [LastBatch]
+FOR XML PATH(''tr''), ELEMENTS ) AS NVARCHAR(MAX));
+
+
+--EVALUATE CASE STATEMENT.  COLOR TEXT FONT ACCORDINGLY. 
+SET @xml=REPLACE(@xml, ''<td>zg'', ''<td id="g">''); -- Green
+SET @xml=REPLACE(@xml, ''<td>zr'', ''<td id="r">''); -- Red
+
+
+--ZEBRA STRIPE THE ROWS IN THE RESULT SET 
+SELECT @s = ''''
+, @pos = CHARINDEX(''<tr>'', @xml, 4);
+ 
+WHILE(@pos > 0)
+BEGIN
+   SET @i += 1;
+   SET @ts = SUBSTRING(@xml, 1, @pos-1)
+   IF(@i % 2 = 1)
+      set @ts = REPLACE(@ts, ''<tr>'', ''<tr id="odd">'');
+   SET @s += @ts;
+   SET @xml = SUBSTRING(@xml, @pos, LEN(@xml));
+   SET @pos =  CHARINDEX(''<tr>'', @xml, 4);
+END -- while
+-- handling the last piece
+SET @i +=1;
+SET @ts = @xml;
+IF(@i % 2 = 1)
+   SET @ts = REPLACE(@ts, ''<tr>'', ''<tr id="odd">'');
+SET @s += @ts;
+
+--WRITE RESULT SET TO EMAIL BODY
+SET @body +=''<body><H3>Captured Sessions</H3>
+Below is a distribution of sessions that have been captured on '' + @@SERVERNAME + 
+
+''
+<BR><BR>
+Background system processes, and sessions captured more than 30 days ago have been excluded.
+
+<BR><BR>
+Session details can be found on '' + @@SERVERNAME + '' in [spc_dba_utilities].[dbo].[temp_sp_who2]
+
+<BR><BR>
+<table border = 1> 
+<tr>
+<th> SessionCountForWeek </th> 
+<th> Login </th> 
+<th> Host Name </th> 
+
+<th> Week Ending </th> 
+
+</tr>'' 
++ @s+''</table> </body> </html>
+
+<BR><BR>
+Regards,
+<BR>
+SierraSpace Database Services'';
+ 
+
+
+EXEC msdb.dbo.sp_send_dbmail
+@profile_name = ''SQLServer''
+,@recipients = @recipients
+--,@recipients = ''stephen.mccord@sierraspace.com'' --DEBUGGING
+,@subject = @MailSubject
+,@body = @body
+,@body_format =''HTML'';
+
+DROP TABLE #Temp2;
+', 
+		@database_name=N'master', 
+		@flags=0
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_update_job @job_id = @jobId, @start_step_id = 1
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_add_jobschedule @job_id=@jobId, @name=N'Captured Session Report Schedule', 
+		@enabled=1, 
+		@freq_type=8, 
+		@freq_interval=8, 
+		@freq_subday_type=1, 
+		@freq_subday_interval=0, 
+		@freq_relative_interval=0, 
+		@freq_recurrence_factor=1, 
+		@active_start_date=20230615, 
+		@active_end_date=99991231, 
+		@active_start_time=70000, 
+		@active_end_time=235959, 
+		@schedule_uid=N'ed6364cc-27d6-4f8b-9f9a-fb4b76ec7029'
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_add_jobserver @job_id = @jobId, @server_name = N'(local)'
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+COMMIT TRANSACTION
+GOTO EndSave
+QuitWithRollback:
+    IF (@@TRANCOUNT > 0) ROLLBACK TRANSACTION
+EndSave:
+GO
+
