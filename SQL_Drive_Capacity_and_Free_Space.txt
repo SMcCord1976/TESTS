@@ -1,0 +1,139 @@
+/* NEED TO ENABLE xp_cmdshell TO EXECUTE */
+/* (re)DISABLE AT THE END                */
+
+--EXEC sp_configure 'show advanced options', '1'
+--RECONFIGURE
+---- this enables xp_cmdshell
+--EXEC sp_configure 'xp_cmdshell', '1' 
+--RECONFIGURE
+
+/*******************************************/
+/* SHOW TOTAL CAPACITY AND FREE DISK SPACE */
+/* 20190620 - H. Vernon - init. release    */
+/* 20190628 - S. McCord - fixed GB calc    */
+/* 20190921 - S. McCord - SQLAgent Job     */
+/*******************************************/
+
+DROP TABLE IF EXISTS #driveinfo;
+DROP TABLE IF EXISTS #drives;
+GO
+DECLARE @drive varchar(100);
+CREATE TABLE #driveinfo
+(
+    rn          int IDENTITY(1,1) 
+                PRIMARY KEY 
+                CLUSTERED
+    , drive     varchar(100) NULL
+    , txt       varchar(1000) NULL
+    , item      varchar(100) NULL
+    , quantity  bigint NULL
+);
+ 
+CREATE TABLE #drives
+(
+    drive       varchar(100) NOT NULL
+    , [MB free] bigint NOT NULL
+);
+INSERT INTO #drives (drive, [MB free])
+EXEC sys.xp_fixeddrives;
+ 
+DECLARE cur CURSOR LOCAL FORWARD_ONLY STATIC READ_ONLY
+FOR
+SELECT d.drive
+FROM #drives d
+ORDER BY d.drive;
+OPEN cur;
+FETCH NEXT FROM cur INTO @drive;
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    DECLARE @cmd varchar(1000);
+    SET @cmd = 'fsutil volume diskfree ' + @drive + ':';
+    INSERT INTO #driveinfo (txt)
+    EXEC sys.xp_cmdshell @cmd;
+    UPDATE #driveinfo 
+    SET drive = @drive + ':'
+    WHERE drive IS NULL;
+    FETCH NEXT FROM cur INTO @drive;
+END
+CLOSE cur;
+DEALLOCATE cur;
+ 
+DELETE di
+FROM #driveinfo di 
+WHERE di.txt IS NULL;
+ 
+UPDATE di
+SET di.item = LEFT(di.txt, CHARINDEX(':', di.txt) - 1),
+di.quantity = CASE CHARINDEX('(', di.txt) --account for when fsutil returns "###(XGB)" label
+WHEN 0 THEN
+RIGHT(di.txt, CHARINDEX(':', REVERSE(di.txt)) - 1) --"###" format
+ELSE
+SUBSTRING(
+di.txt,
+CHARINDEX(':', di.txt) + 1,
+CHARINDEX('(', di.txt) - CHARINDEX(':', di.txt) - 2
+) --"###(XGB) format
+END
+FROM #driveinfo di
+ 
+ALTER TABLE #driveinfo DROP COLUMN txt;
+ 
+;WITH src AS 
+(
+    SELECT pvt.drive
+        , pvt.[Total # of bytes             ]
+        , pvt.[Total # of free bytes        ]
+        , pvt.[Total # of avail free bytes  ]
+    FROM #driveinfo
+    PIVOT (
+        SUM(quantity)
+        FOR item IN (
+              [Total # of free bytes        ]
+            , [Total # of bytes             ]
+            , [Total # of avail free bytes  ]
+            )
+    ) pvt
+)
+SELECT src.drive
+    , [Total MB]            = FORMAT(SUM(src.[Total # of bytes             ] / 1048576), '#,###')
+    , [Total Free MB]       = FORMAT(SUM(src.[Total # of free bytes        ] / 1048576), '#,###')
+    , [Total Available MB]  = FORMAT(SUM(src.[Total # of avail free bytes  ] / 1048576), '#,###')
+    , [Percent Free]        = FORMAT(CONVERT(decimal(38,0), SUM(src.[Total # of free bytes        ])) 
+                            / CONVERT(decimal(38, 0), SUM(src.[Total # of bytes             ])), '0.00%')
+FROM src
+GROUP BY src.drive
+
+
+--drive	Total MB	Total Free MB	Total Available MB	Percent Free
+--C:	101,747		29,653			29,653				29.14%
+--D:	204,781		189,689			189,689				92.63%
+--E:	409,581		391,872			391,872				95.68%
+--F:	204,781		203,097			203,097				99.18%
+--S:	102,382		66,192			66,192				64.65%
+
+
+
+/* (re)DISABLE xp_cmdshell                */
+--EXEC sp_configure 'show advanced options', '1'
+--RECONFIGURE
+---- this disables xp_cmdshell
+--EXEC sp_configure 'xp_cmdshell', '0' 
+--RECONFIGURE
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

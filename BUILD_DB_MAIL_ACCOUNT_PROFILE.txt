@@ -1,0 +1,37 @@
+IF NOT EXISTS(SELECT * FROM msdb.dbo.sysmail_profile WHERE  name = 'SQLMI')  
+  BEGIN 
+    EXECUTE msdb.dbo.sysmail_add_profile_sp 
+      @profile_name = 'SQLMI', 
+      @description  = 'SQLMI DB Mail Profile'; 
+  END 
+   
+  IF NOT EXISTS(SELECT * FROM msdb.dbo.sysmail_account WHERE  name = 'AUTHENTICATED_DB_MAIL') 
+  BEGIN 
+    EXECUTE msdb.dbo.sysmail_add_account_sp 
+    @account_name            = 'AUTHENTICATED_DB_MAIL', 
+    @email_address           = 'database.mail@sierraspace.com', 
+    @display_name            = 'SierraSpace Database Administration', 
+    @replyto_address         = 'r-dba-team@sierraspace.com', 
+    @description             = 'Database Mail using an authenticated AAD / AD account', 
+    @mailserver_name         = 'smtp.sierraspace.com', 
+    @mailserver_type         = 'SMTP', 
+    @port                    = '587', 
+    @username                = 'SIERRASPACE\database.mail', 
+    @password                = 'PASSWORD',  
+    @use_default_credentials =  0 , 
+    @enable_ssl              =  0 ; 
+  END 
+   
+IF NOT EXISTS(SELECT * 
+              FROM msdb.dbo.sysmail_profileaccount pa 
+                INNER JOIN msdb.dbo.sysmail_profile p ON pa.profile_id = p.profile_id 
+                INNER JOIN msdb.dbo.sysmail_account a ON pa.account_id = a.account_id   
+              WHERE p.name = 'SQLMI' 
+                AND a.name = 'AUTHENTICATED_DB_MAIL')  
+
+BEGIN 
+    EXECUTE msdb.dbo.sysmail_add_profileaccount_sp 
+      @profile_name = 'SQLMI', 
+      @account_name = 'AUTHENTICATED_DB_MAIL', 
+      @sequence_number = 1 ; 
+END  

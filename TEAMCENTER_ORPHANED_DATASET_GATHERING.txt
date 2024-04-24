@@ -1,0 +1,39 @@
+--TEAMCENTER ORPHANNED DATA GATHERING
+
+USE [TCPROD]
+GO
+
+--"dba" group
+	select a.pobject_name , a.pobject_type, pu.puser_name, pg.pname, b.puid, a.prevision_number, c.phighest_rev 
+	from dbo.PWORKSPACEOBJECT a, dbo.PDATASET b, dbo.PREVISIONANCHOR c, dbo.PPOM_APPLICATION_OBJECT ppao, dbo.PPOM_GROUP pg, dbo.PPOM_USER pu
+	where a.pobject_name like '%' 
+	      and a.puid = b.puid 
+	      and b.rrev_chain_anchoru = c.puid 
+                and ppao.puid = b.puid 
+				and ppao.rowning_groupu = pg.puid 
+				and pg.pname = 'dba' 
+				and pobject_type != 'XMLRenderingStylesheet'
+				and ppao.rowning_useru = pu.puid
+				and ( pu.puser_name != 'infodba' AND pu.puser_name != 'dcproxy' )
+				and a.prevision_limit = 1 
+				and b.puid not in (
+	   select rsecondary_objectu from dbo.PIMANRELATION) ;
+
+
+
+
+
+
+--non-"dba" group
+	 select a.pobject_name , a.pobject_type, pu.puser_name, pg.pname, b.puid, a.prevision_number, c.phighest_rev 
+	      from dbo.PWORKSPACEOBJECT a, dbo.PDATASET b, dbo.PREVISIONANCHOR c, dbo.PPOM_APPLICATION_OBJECT ppao, dbo.PPOM_GROUP pg, dbo.PPOM_USER pu
+	      where a.pobject_name like '%' 
+		        and a.puid = b.puid 
+				and b.rrev_chain_anchoru = c.puid 
+                and ppao.puid = b.puid 
+				and ppao.rowning_groupu = pg.puid 
+			    and ppao.rowning_useru = pu.puid
+				and pg.pname != 'dba'
+				and a.prevision_limit = 1 
+				and b.puid not in (
+	   select rsecondary_objectu from dbo.PIMANRELATION) ;

@@ -1,0 +1,27 @@
+
+USE [master]
+GO
+EXEC master.dbo.sp_serveroption @server=N'CMS_confl_mops_prod', @optname=N'rpc', @optvalue=N'true'
+GO
+EXEC master.dbo.sp_serveroption @server=N'CMS_confl_mops_prod', @optname=N'rpc out', @optvalue=N'true'
+GO
+
+
+
+DECLARE @user VARCHAR(25)
+SET @user = 'idera_dm_admin'
+DECLARE @password VARCHAR(50)
+SET @password = ''
+DECLARE @linkedserver VARCHAR(25)
+SET @linkedserver = 'CMS_confl_mops_prod'
+
+
+
+
+
+ DECLARE @query nvarchar(1000)
+ SET @query = 'EXEC (''CREATE LOGIN [' + @user + '] WITH PASSWORD=N''''' +
+        @password + ''''', DEFAULT_DATABASE=[master], CHECK_EXPIRATION=OFF,
+        CHECK_POLICY=OFF'') AT [' + @linkedserver + ']'
+ PRINT @query
+

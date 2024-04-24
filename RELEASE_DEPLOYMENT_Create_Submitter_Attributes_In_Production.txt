@@ -1,0 +1,117 @@
+
+
+/*****************************************************************/
+--CREATE THE TEMPLATE JOB THAT WILL BE OWNED BY THE SUBMITTER
+/*****************************************************************/
+
+
+USE [msdb]
+GO
+
+BEGIN TRANSACTION
+DECLARE @ReturnCode INT
+SELECT @ReturnCode = 0
+/****** Object:  JobCategory [[Uncategorized (Local)]]    Script Date: 2/5/2024 1:18:32 PM ******/
+IF NOT EXISTS (SELECT name FROM msdb.dbo.syscategories WHERE name=N'[Uncategorized (Local)]' AND category_class=1)
+BEGIN
+EXEC @ReturnCode = msdb.dbo.sp_add_category @class=N'JOB', @type=N'LOCAL', @name=N'[Uncategorized (Local)]'
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+
+END
+
+DECLARE @jobId BINARY(16)
+EXEC @ReturnCode =  msdb.dbo.sp_add_job @job_name=N'Code Staging - Development - SIERRASPACE\117968', 
+		@enabled=1, 
+		@notify_level_eventlog=0, 
+		@notify_level_email=0, 
+		@notify_level_netsend=0, 
+		@notify_level_page=0, 
+		@delete_level=0, 
+		@description=N'This job exists on a PRODUCTION scoped server and is used to stage code that will be implemented by a user (Release Engineer) with appropriate access, during an approved solution maintenance window', 
+		@category_name=N'[Uncategorized (Local)]', 
+		@owner_login_name=N'SIERRASPACE\117968', @job_id = @jobId OUTPUT
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+/****** Object:  Step [COMMENTS / INSTRUCTIONS]    Script Date: 2/5/2024 1:18:33 PM ******/
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'COMMENTS / INSTRUCTIONS', 
+		@step_id=1, 
+		@cmdexec_success_code=0, 
+		@on_success_action=3, 
+		@on_success_step_id=0, 
+		@on_fail_action=3, 
+		@on_fail_step_id=0, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'/* COMMENT HERE */
+
+/* INSTRUCTIONS OR CONSIDERATIONS FOR DEPLOYMENT HERE */', 
+		@database_name=N'spc_dba_utilities', 
+		@flags=0
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+/****** Object:  Step [Script 1]    Script Date: 2/5/2024 1:18:33 PM ******/
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'Script 1', 
+		@step_id=2, 
+		@cmdexec_success_code=0, 
+		@on_success_action=3, 
+		@on_success_step_id=0, 
+		@on_fail_action=2, 
+		@on_fail_step_id=0, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'USE [database_name]
+GO
+
+SELECT ''test1''', 
+		@database_name=N'master', 
+		@flags=0
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+/****** Object:  Step [Script 2]    Script Date: 2/5/2024 1:18:33 PM ******/
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'Script 2', 
+		@step_id=3, 
+		@cmdexec_success_code=0, 
+		@on_success_action=1, 
+		@on_success_step_id=0, 
+		@on_fail_action=2, 
+		@on_fail_step_id=0, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'USE [database_name]
+GO
+
+SELECT ''test2''', 
+		@database_name=N'master', 
+		@flags=0
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_update_job @job_id = @jobId, @start_step_id = 1
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_add_jobserver @job_id = @jobId, @server_name = N'(local)'
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+COMMIT TRANSACTION
+GOTO EndSave
+QuitWithRollback:
+    IF (@@TRANCOUNT > 0) ROLLBACK TRANSACTION
+EndSave:
+GO
+
+
+
+/*************************************************************************************************/
+/*ADD THE SUBMITTER TO THE msdb DATABASE.
+--GRANT THE SUBMITTER PERMISSION TO 'OWN' AGENT JOBS
+EXPLICITLY DENY THE PERMISSION FOR THE SUBMITTER TO EXECUTE AGENT JOBS (IN PRODUCTION)
+(i.e., Prevent them from being able to deploy their own code through this process, even though they "own" the job)  
+*/
+/*************************************************************************************************/
+
+USE [msdb]
+GO
+CREATE USER [SIERRASPACE\117968] FOR LOGIN [SIERRASPACE\117968] 
+GO
+ALTER ROLE [SQLAgentUserRole] ADD MEMBER [SIERRASPACE\117968] 
+GO
+DENY EXECUTE ON [dbo].[sp_start_job] TO [SIERRASPACE\117968] 
+GO
+
+

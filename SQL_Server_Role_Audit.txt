@@ -1,0 +1,48 @@
+
+
+--SHOW ALL SYSADMINS
+
+SELECT NAME AS 'SERVER_LOGIN_NAME' /* THE NAME OF THE USER*/
+	,CASE isntname
+		WHEN 1 THEN 'WINDOWS AUTHENTICATED LOGIN' 
+		WHEN 0 THEN 'SQL AUTHENTICATED LOGIN' 
+	 END AS 'LOGIN_TYPE' /* IS SERVER_LOGIN_NAME A WINDOWS LOGIN (1) OR SQL LOGIN (0) */
+	,CASE isntgroup 
+		WHEN 1 THEN 'WINDOWS AD GROUP'
+		WHEN 0 THEN 'NOT A WINDOWS AD GROUP'
+	 END AS 'IS_WINDOWS_GROUP' /* IS SERVER_LOGIN_NAME A WINDOWS GROUP (1) (i.e. NOT an individual user) */
+	,CASE isntuser 
+		WHEN 1 THEN 'INDIVIDUAL WINDOWS USER'
+		WHEN 0 THEN 'NOT AN INDIVIDUAL WINDOWS USER'
+	 END AS 'IS_WINDOWS_USER' /* IS SERVER_LOGIN_NAME A WINDOWS USER (1) (i.e. NOT a group) */
+FROM master.dbo.syslogins 
+	WHERE sysadmin = 1  /* HEAVILY SCRUTINIZED ROLE */
+ORDER BY LOGIN_TYPE, IS_WINDOWS_GROUP, IS_WINDOWS_USER
+GO
+
+
+
+
+--SHOW DATABASE LEVEL ROLES
+
+USE [DATABASENAME]
+GO
+
+SELECT
+	 db_name() as [Database_Name]
+	,prin.NAME AS [Database_User_Name]
+	,prin.type_desc AS [Login_Type]
+	,isnull(USER_NAME(mem.role_principal_id), '') AS [Database_Role]
+
+FROM sys.database_principals prin
+LEFT JOIN sys.database_role_members mem ON prin.principal_id = mem.member_principal_id
+WHERE prin.sid IS NOT NULL
+	AND prin.sid NOT IN (0x00)
+	AND prin.is_fixed_role <> 1
+	AND prin.NAME NOT LIKE '##%'
+	AND prin.type in ('S','U','G')
+GO
+
+
+
+

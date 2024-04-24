@@ -1,0 +1,1173 @@
+
+
+/******************************************************/
+/*
+
+4 AD groups per schema.
+	4 corresponding roles granted per schema; reader, writer, executor, owner
+		reader:  4 explicit perms granted to corresponding schema
+		writer:  6 explicit perms granted to corresponding schema
+		executor: 5 explicit perms granted to corresponding schema
+		owner: 10 explicit perms granted to corresponding schema
+
+
+--FIND AND REPLACE VARIABLES:
+
+-SolutionAbbreviation- (ex: "-R1-")
+-SDLC- (ex: "-PRD-")
+-Schema- (ex: "-dayforce-")
+::[DefaultSchema] (ex: "::[etq_archive]")
+
+*/
+/******************************************************/
+
+
+CREATE LOGIN [P-SQL-R1-PRD-All-executor] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-All-owner] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-All-reader] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-All-writer] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-dayforce-executor] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-dayforce-owner] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-dayforce-reader] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-dayforce-writer] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-dbo-executor] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-dbo-owner] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-dbo-reader] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-dbo-writer] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-wc_certified-executor] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-wc_certified-owner] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-wc_certified-reader] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-wc_certified-writer] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-workday-executor] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-workday-owner] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-workday-reader] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-workday-writer] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-tc-executor] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-tc-owner] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-tc-reader] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-tc-writer] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-ccure-executor] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-ccure-owner] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-ccure-reader] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-ccure-writer] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-etq_archive-executor] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-etq_archive-owner] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-etq_archive-reader] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-etq_archive-writer] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-jira-executor] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-jira-owner] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-jira-reader] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-jira-writer] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-QCode-executor] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-QCode-owner] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-QCode-reader] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-QCode-writer] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-pub-executor] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-pub-owner] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-pub-reader] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-pub-writer] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-office-executor] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-office-owner] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-office-reader] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-office-writer] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-schedules-executor] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-schedules-owner] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-schedules-reader] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+CREATE LOGIN [P-SQL-R1-PRD-schedules-writer] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+
+
+USE [Rogue1]
+GO
+CREATE USER [P-SQL-R1-PRD-All-executor] FOR LOGIN [P-SQL-R1-PRD-All-executor]
+GO
+ALTER USER [P-SQL-R1-PRD-All-executor] WITH DEFAULT_SCHEMA=[All]
+GO
+GRANT CREATE SEQUENCE ON SCHEMA::[All] TO [P-SQL-R1-PRD-All-executor]
+GO
+GRANT EXECUTE ON SCHEMA::[All] TO [P-SQL-R1-PRD-All-executor]
+GO
+GRANT REFERENCES ON SCHEMA::[All] TO [P-SQL-R1-PRD-All-executor]
+GO
+GRANT SELECT ON SCHEMA::[All] TO [P-SQL-R1-PRD-All-executor]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[All] TO [P-SQL-R1-PRD-All-executor]
+GO
+
+
+
+
+CREATE USER [P-SQL-R1-PRD-All-owner] FOR LOGIN [P-SQL-R1-PRD-All-owner]
+GO
+ALTER USER [P-SQL-R1-PRD-All-owner] WITH DEFAULT_SCHEMA=[All]
+GO
+GRANT ALTER ON SCHEMA::[All] TO [P-SQL-R1-PRD-All-owner]
+GO
+GRANT CREATE SEQUENCE ON SCHEMA::[All] TO [P-SQL-R1-PRD-All-owner]
+GO
+GRANT DELETE ON SCHEMA::[All] TO [P-SQL-R1-PRD-All-owner]
+GO
+GRANT EXECUTE ON SCHEMA::[All] TO [P-SQL-R1-PRD-All-owner]
+GO
+GRANT INSERT ON SCHEMA::[All] TO [P-SQL-R1-PRD-All-owner]
+GO
+GRANT REFERENCES ON SCHEMA::[All] TO [P-SQL-R1-PRD-All-owner]
+GO
+GRANT SELECT ON SCHEMA::[All] TO [P-SQL-R1-PRD-All-owner]
+GO
+GRANT UPDATE ON SCHEMA::[All] TO [P-SQL-R1-PRD-All-owner]
+GO
+GRANT VIEW CHANGE TRACKING ON SCHEMA::[All] TO [P-SQL-R1-PRD-All-owner]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[All] TO [P-SQL-R1-PRD-All-owner]
+GO
+
+
+
+CREATE USER [P-SQL-R1-PRD-All-writer] FOR LOGIN [P-SQL-R1-PRD-All-writer]
+GO
+ALTER USER [P-SQL-R1-PRD-All-writer] WITH DEFAULT_SCHEMA=[All]
+GO
+GRANT DELETE ON SCHEMA::[All] TO [P-SQL-R1-PRD-All-writer]
+GO
+GRANT INSERT ON SCHEMA::[All] TO [P-SQL-R1-PRD-All-writer]
+GO
+GRANT REFERENCES ON SCHEMA::[All] TO [P-SQL-R1-PRD-All-writer]
+GO
+GRANT SELECT ON SCHEMA::[All] TO [P-SQL-R1-PRD-All-writer]
+GO
+GRANT UPDATE ON SCHEMA::[All] TO [P-SQL-R1-PRD-All-writer]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[All] TO [P-SQL-R1-PRD-All-writer]
+GO
+
+
+
+CREATE USER [P-SQL-R1-PRD-All-reader] FOR LOGIN [P-SQL-R1-PRD-All-reader]
+GO
+ALTER USER [P-SQL-R1-PRD-All-reader] WITH DEFAULT_SCHEMA=[All]
+GO
+GRANT REFERENCES ON SCHEMA::[All] TO [P-SQL-R1-PRD-All-reader]
+GO
+GRANT SELECT ON SCHEMA::[All] TO [P-SQL-R1-PRD-All-reader]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[All] TO [P-SQL-R1-PRD-All-reader]
+GO
+
+
+
+USE [Rogue1]
+GO
+CREATE USER [P-SQL-R1-PRD-dayforce-executor] FOR LOGIN [P-SQL-R1-PRD-dayforce-executor]
+GO
+ALTER USER [P-SQL-R1-PRD-dayforce-executor] WITH DEFAULT_SCHEMA=[dayforce]
+GO
+GRANT CREATE SEQUENCE ON SCHEMA::[dayforce] TO [P-SQL-R1-PRD-dayforce-executor]
+GO
+GRANT EXECUTE ON SCHEMA::[dayforce] TO [P-SQL-R1-PRD-dayforce-executor]
+GO
+GRANT REFERENCES ON SCHEMA::[dayforce] TO [P-SQL-R1-PRD-dayforce-executor]
+GO
+GRANT SELECT ON SCHEMA::[dayforce] TO [P-SQL-R1-PRD-dayforce-executor]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[dayforce] TO [P-SQL-R1-PRD-dayforce-executor]
+GO
+
+
+
+
+CREATE USER [P-SQL-R1-PRD-dayforce-owner] FOR LOGIN [P-SQL-R1-PRD-dayforce-owner]
+GO
+ALTER USER [P-SQL-R1-PRD-dayforce-owner] WITH DEFAULT_SCHEMA=[dayforce]
+GO
+GRANT ALTER ON SCHEMA::[dayforce] TO [P-SQL-R1-PRD-dayforce-owner]
+GO
+GRANT CREATE SEQUENCE ON SCHEMA::[dayforce] TO [P-SQL-R1-PRD-dayforce-owner]
+GO
+GRANT DELETE ON SCHEMA::[dayforce] TO [P-SQL-R1-PRD-dayforce-owner]
+GO
+GRANT EXECUTE ON SCHEMA::[dayforce] TO [P-SQL-R1-PRD-dayforce-owner]
+GO
+GRANT INSERT ON SCHEMA::[dayforce] TO [P-SQL-R1-PRD-dayforce-owner]
+GO
+GRANT REFERENCES ON SCHEMA::[dayforce] TO [P-SQL-R1-PRD-dayforce-owner]
+GO
+GRANT SELECT ON SCHEMA::[dayforce] TO [P-SQL-R1-PRD-dayforce-owner]
+GO
+GRANT UPDATE ON SCHEMA::[dayforce] TO [P-SQL-R1-PRD-dayforce-owner]
+GO
+GRANT VIEW CHANGE TRACKING ON SCHEMA::[dayforce] TO [P-SQL-R1-PRD-dayforce-owner]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[dayforce] TO [P-SQL-R1-PRD-dayforce-owner]
+GO
+
+
+
+CREATE USER [P-SQL-R1-PRD-dayforce-writer] FOR LOGIN [P-SQL-R1-PRD-dayforce-writer]
+GO
+ALTER USER [P-SQL-R1-PRD-dayforce-writer] WITH DEFAULT_SCHEMA=[dayforce]
+GO
+GRANT DELETE ON SCHEMA::[dayforce] TO [P-SQL-R1-PRD-dayforce-writer]
+GO
+GRANT INSERT ON SCHEMA::[dayforce] TO [P-SQL-R1-PRD-dayforce-writer]
+GO
+GRANT REFERENCES ON SCHEMA::[dayforce] TO [P-SQL-R1-PRD-dayforce-writer]
+GO
+GRANT SELECT ON SCHEMA::[dayforce] TO [P-SQL-R1-PRD-dayforce-writer]
+GO
+GRANT UPDATE ON SCHEMA::[dayforce] TO [P-SQL-R1-PRD-dayforce-writer]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[dayforce] TO [P-SQL-R1-PRD-dayforce-writer]
+GO
+
+
+
+CREATE USER [P-SQL-R1-PRD-dayforce-reader] FOR LOGIN [P-SQL-R1-PRD-dayforce-reader]
+GO
+ALTER USER [P-SQL-R1-PRD-dayforce-reader] WITH DEFAULT_SCHEMA=[dayforce]
+GO
+GRANT REFERENCES ON SCHEMA::[dayforce] TO [P-SQL-R1-PRD-dayforce-reader]
+GO
+GRANT SELECT ON SCHEMA::[dayforce] TO [P-SQL-R1-PRD-dayforce-reader]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[dayforce] TO [P-SQL-R1-PRD-dayforce-reader]
+GO
+
+
+
+
+USE [Rogue1]
+GO
+CREATE USER [P-SQL-R1-PRD-dbo-executor] FOR LOGIN [P-SQL-R1-PRD-dbo-executor]
+GO
+ALTER USER [P-SQL-R1-PRD-dbo-executor] WITH DEFAULT_SCHEMA=[dbo]
+GO
+GRANT CREATE SEQUENCE ON SCHEMA::[dbo] TO [P-SQL-R1-PRD-dbo-executor]
+GO
+GRANT EXECUTE ON SCHEMA::[dbo] TO [P-SQL-R1-PRD-dbo-executor]
+GO
+GRANT REFERENCES ON SCHEMA::[dbo] TO [P-SQL-R1-PRD-dbo-executor]
+GO
+GRANT SELECT ON SCHEMA::[dbo] TO [P-SQL-R1-PRD-dbo-executor]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[dbo] TO [P-SQL-R1-PRD-dbo-executor]
+GO
+
+
+
+
+CREATE USER [P-SQL-R1-PRD-dbo-owner] FOR LOGIN [P-SQL-R1-PRD-dbo-owner]
+GO
+ALTER USER [P-SQL-R1-PRD-dbo-owner] WITH DEFAULT_SCHEMA=[dbo]
+GO
+GRANT ALTER ON SCHEMA::[dbo] TO [P-SQL-R1-PRD-dbo-owner]
+GO
+GRANT CREATE SEQUENCE ON SCHEMA::[dbo] TO [P-SQL-R1-PRD-dbo-owner]
+GO
+GRANT DELETE ON SCHEMA::[dbo] TO [P-SQL-R1-PRD-dbo-owner]
+GO
+GRANT EXECUTE ON SCHEMA::[dbo] TO [P-SQL-R1-PRD-dbo-owner]
+GO
+GRANT INSERT ON SCHEMA::[dbo] TO [P-SQL-R1-PRD-dbo-owner]
+GO
+GRANT REFERENCES ON SCHEMA::[dbo] TO [P-SQL-R1-PRD-dbo-owner]
+GO
+GRANT SELECT ON SCHEMA::[dbo] TO [P-SQL-R1-PRD-dbo-owner]
+GO
+GRANT UPDATE ON SCHEMA::[dbo] TO [P-SQL-R1-PRD-dbo-owner]
+GO
+GRANT VIEW CHANGE TRACKING ON SCHEMA::[dbo] TO [P-SQL-R1-PRD-dbo-owner]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[dbo] TO [P-SQL-R1-PRD-dbo-owner]
+GO
+
+
+
+CREATE USER [P-SQL-R1-PRD-dbo-writer] FOR LOGIN [P-SQL-R1-PRD-dbo-writer]
+GO
+ALTER USER [P-SQL-R1-PRD-dbo-writer] WITH DEFAULT_SCHEMA=[dbo]
+GO
+GRANT DELETE ON SCHEMA::[dbo] TO [P-SQL-R1-PRD-dbo-writer]
+GO
+GRANT INSERT ON SCHEMA::[dbo] TO [P-SQL-R1-PRD-dbo-writer]
+GO
+GRANT REFERENCES ON SCHEMA::[dbo] TO [P-SQL-R1-PRD-dbo-writer]
+GO
+GRANT SELECT ON SCHEMA::[dbo] TO [P-SQL-R1-PRD-dbo-writer]
+GO
+GRANT UPDATE ON SCHEMA::[dbo] TO [P-SQL-R1-PRD-dbo-writer]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[dbo] TO [P-SQL-R1-PRD-dbo-writer]
+GO
+
+
+
+CREATE USER [P-SQL-R1-PRD-dbo-reader] FOR LOGIN [P-SQL-R1-PRD-dbo-reader]
+GO
+ALTER USER [P-SQL-R1-PRD-dbo-reader] WITH DEFAULT_SCHEMA=[dbo]
+GO
+GRANT REFERENCES ON SCHEMA::[dbo] TO [P-SQL-R1-PRD-dbo-reader]
+GO
+GRANT SELECT ON SCHEMA::[dbo] TO [P-SQL-R1-PRD-dbo-reader]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[dbo] TO [P-SQL-R1-PRD-dbo-reader]
+GO
+
+
+
+USE [Rogue1]
+GO
+CREATE USER [P-SQL-R1-PRD-wc_certified-executor] FOR LOGIN [P-SQL-R1-PRD-wc_certified-executor]
+GO
+ALTER USER [P-SQL-R1-PRD-wc_certified-executor] WITH DEFAULT_SCHEMA=[windchill_certified]
+GO
+GRANT CREATE SEQUENCE ON SCHEMA::[windchill_certified] TO [P-SQL-R1-PRD-wc_certified-executor]
+GO
+GRANT EXECUTE ON SCHEMA::[windchill_certified] TO [P-SQL-R1-PRD-wc_certified-executor]
+GO
+GRANT REFERENCES ON SCHEMA::[windchill_certified] TO [P-SQL-R1-PRD-wc_certified-executor]
+GO
+GRANT SELECT ON SCHEMA::[windchill_certified] TO [P-SQL-R1-PRD-wc_certified-executor]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[windchill_certified] TO [P-SQL-R1-PRD-wc_certified-executor]
+GO
+
+
+
+
+CREATE USER [P-SQL-R1-PRD-wc_certified-owner] FOR LOGIN [P-SQL-R1-PRD-wc_certified-owner]
+GO
+ALTER USER [P-SQL-R1-PRD-wc_certified-owner] WITH DEFAULT_SCHEMA=[windchill_certified]
+GO
+GRANT ALTER ON SCHEMA::[windchill_certified] TO [P-SQL-R1-PRD-wc_certified-owner]
+GO
+GRANT CREATE SEQUENCE ON SCHEMA::[windchill_certified] TO [P-SQL-R1-PRD-wc_certified-owner]
+GO
+GRANT DELETE ON SCHEMA::[windchill_certified] TO [P-SQL-R1-PRD-wc_certified-owner]
+GO
+GRANT EXECUTE ON SCHEMA::[windchill_certified] TO [P-SQL-R1-PRD-wc_certified-owner]
+GO
+GRANT INSERT ON SCHEMA::[windchill_certified] TO [P-SQL-R1-PRD-wc_certified-owner]
+GO
+GRANT REFERENCES ON SCHEMA::[windchill_certified] TO [P-SQL-R1-PRD-wc_certified-owner]
+GO
+GRANT SELECT ON SCHEMA::[windchill_certified] TO [P-SQL-R1-PRD-wc_certified-owner]
+GO
+GRANT UPDATE ON SCHEMA::[windchill_certified] TO [P-SQL-R1-PRD-wc_certified-owner]
+GO
+GRANT VIEW CHANGE TRACKING ON SCHEMA::[windchill_certified] TO [P-SQL-R1-PRD-wc_certified-owner]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[windchill_certified] TO [P-SQL-R1-PRD-wc_certified-owner]
+GO
+
+
+
+CREATE USER [P-SQL-R1-PRD-wc_certified-writer] FOR LOGIN [P-SQL-R1-PRD-wc_certified-writer]
+GO
+ALTER USER [P-SQL-R1-PRD-wc_certified-writer] WITH DEFAULT_SCHEMA=[windchill_certified]
+GO
+GRANT DELETE ON SCHEMA::[windchill_certified] TO [P-SQL-R1-PRD-wc_certified-writer]
+GO
+GRANT INSERT ON SCHEMA::[windchill_certified] TO [P-SQL-R1-PRD-wc_certified-writer]
+GO
+GRANT REFERENCES ON SCHEMA::[windchill_certified] TO [P-SQL-R1-PRD-wc_certified-writer]
+GO
+GRANT SELECT ON SCHEMA::[windchill_certified] TO [P-SQL-R1-PRD-wc_certified-writer]
+GO
+GRANT UPDATE ON SCHEMA::[windchill_certified] TO [P-SQL-R1-PRD-wc_certified-writer]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[windchill_certified] TO [P-SQL-R1-PRD-wc_certified-writer]
+GO
+
+
+
+CREATE USER [P-SQL-R1-PRD-wc_certified-reader] FOR LOGIN [P-SQL-R1-PRD-wc_certified-reader]
+GO
+ALTER USER [P-SQL-R1-PRD-wc_certified-reader] WITH DEFAULT_SCHEMA=[windchill_certified]
+GO
+GRANT REFERENCES ON SCHEMA::[windchill_certified] TO [P-SQL-R1-PRD-wc_certified-reader]
+GO
+GRANT SELECT ON SCHEMA::[windchill_certified] TO [P-SQL-R1-PRD-wc_certified-reader]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[windchill_certified] TO [P-SQL-R1-PRD-wc_certified-reader]
+GO
+
+
+
+USE [Rogue1]
+GO
+CREATE USER [P-SQL-R1-PRD-workday-executor] FOR LOGIN [P-SQL-R1-PRD-workday-executor]
+GO
+ALTER USER [P-SQL-R1-PRD-workday-executor] WITH DEFAULT_SCHEMA=[workday]
+GO
+GRANT CREATE SEQUENCE ON SCHEMA::[workday] TO [P-SQL-R1-PRD-workday-executor]
+GO
+GRANT EXECUTE ON SCHEMA::[workday] TO [P-SQL-R1-PRD-workday-executor]
+GO
+GRANT REFERENCES ON SCHEMA::[workday] TO [P-SQL-R1-PRD-workday-executor]
+GO
+GRANT SELECT ON SCHEMA::[workday] TO [P-SQL-R1-PRD-workday-executor]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[workday] TO [P-SQL-R1-PRD-workday-executor]
+GO
+
+
+
+
+CREATE USER [P-SQL-R1-PRD-workday-owner] FOR LOGIN [P-SQL-R1-PRD-workday-owner]
+GO
+ALTER USER [P-SQL-R1-PRD-workday-owner] WITH DEFAULT_SCHEMA=[workday]
+GO
+GRANT ALTER ON SCHEMA::[workday] TO [P-SQL-R1-PRD-workday-owner]
+GO
+GRANT CREATE SEQUENCE ON SCHEMA::[workday] TO [P-SQL-R1-PRD-workday-owner]
+GO
+GRANT DELETE ON SCHEMA::[workday] TO [P-SQL-R1-PRD-workday-owner]
+GO
+GRANT EXECUTE ON SCHEMA::[workday] TO [P-SQL-R1-PRD-workday-owner]
+GO
+GRANT INSERT ON SCHEMA::[workday] TO [P-SQL-R1-PRD-workday-owner]
+GO
+GRANT REFERENCES ON SCHEMA::[workday] TO [P-SQL-R1-PRD-workday-owner]
+GO
+GRANT SELECT ON SCHEMA::[workday] TO [P-SQL-R1-PRD-workday-owner]
+GO
+GRANT UPDATE ON SCHEMA::[workday] TO [P-SQL-R1-PRD-workday-owner]
+GO
+GRANT VIEW CHANGE TRACKING ON SCHEMA::[workday] TO [P-SQL-R1-PRD-workday-owner]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[workday] TO [P-SQL-R1-PRD-workday-owner]
+GO
+
+
+
+CREATE USER [P-SQL-R1-PRD-workday-writer] FOR LOGIN [P-SQL-R1-PRD-workday-writer]
+GO
+ALTER USER [P-SQL-R1-PRD-workday-writer] WITH DEFAULT_SCHEMA=[workday]
+GO
+GRANT DELETE ON SCHEMA::[workday] TO [P-SQL-R1-PRD-workday-writer]
+GO
+GRANT INSERT ON SCHEMA::[workday] TO [P-SQL-R1-PRD-workday-writer]
+GO
+GRANT REFERENCES ON SCHEMA::[workday] TO [P-SQL-R1-PRD-workday-writer]
+GO
+GRANT SELECT ON SCHEMA::[workday] TO [P-SQL-R1-PRD-workday-writer]
+GO
+GRANT UPDATE ON SCHEMA::[workday] TO [P-SQL-R1-PRD-workday-writer]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[workday] TO [P-SQL-R1-PRD-workday-writer]
+GO
+
+
+
+CREATE USER [P-SQL-R1-PRD-workday-reader] FOR LOGIN [P-SQL-R1-PRD-workday-reader]
+GO
+ALTER USER [P-SQL-R1-PRD-workday-reader] WITH DEFAULT_SCHEMA=[workday]
+GO
+GRANT REFERENCES ON SCHEMA::[workday] TO [P-SQL-R1-PRD-workday-reader]
+GO
+GRANT SELECT ON SCHEMA::[workday] TO [P-SQL-R1-PRD-workday-reader]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[workday] TO [P-SQL-R1-PRD-workday-reader]
+GO
+
+
+
+
+USE [Rogue1]
+GO
+CREATE USER [P-SQL-R1-PRD-tc-executor] FOR LOGIN [P-SQL-R1-PRD-tc-executor]
+GO
+ALTER USER [P-SQL-R1-PRD-tc-executor] WITH DEFAULT_SCHEMA=[tc]
+GO
+GRANT CREATE SEQUENCE ON SCHEMA::[tc] TO [P-SQL-R1-PRD-tc-executor]
+GO
+GRANT EXECUTE ON SCHEMA::[tc] TO [P-SQL-R1-PRD-tc-executor]
+GO
+GRANT REFERENCES ON SCHEMA::[tc] TO [P-SQL-R1-PRD-tc-executor]
+GO
+GRANT SELECT ON SCHEMA::[tc] TO [P-SQL-R1-PRD-tc-executor]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[tc] TO [P-SQL-R1-PRD-tc-executor]
+GO
+
+
+
+
+CREATE USER [P-SQL-R1-PRD-tc-owner] FOR LOGIN [P-SQL-R1-PRD-tc-owner]
+GO
+ALTER USER [P-SQL-R1-PRD-tc-owner] WITH DEFAULT_SCHEMA=[tc]
+GO
+GRANT ALTER ON SCHEMA::[tc] TO [P-SQL-R1-PRD-tc-owner]
+GO
+GRANT CREATE SEQUENCE ON SCHEMA::[tc] TO [P-SQL-R1-PRD-tc-owner]
+GO
+GRANT DELETE ON SCHEMA::[tc] TO [P-SQL-R1-PRD-tc-owner]
+GO
+GRANT EXECUTE ON SCHEMA::[tc] TO [P-SQL-R1-PRD-tc-owner]
+GO
+GRANT INSERT ON SCHEMA::[tc] TO [P-SQL-R1-PRD-tc-owner]
+GO
+GRANT REFERENCES ON SCHEMA::[tc] TO [P-SQL-R1-PRD-tc-owner]
+GO
+GRANT SELECT ON SCHEMA::[tc] TO [P-SQL-R1-PRD-tc-owner]
+GO
+GRANT UPDATE ON SCHEMA::[tc] TO [P-SQL-R1-PRD-tc-owner]
+GO
+GRANT VIEW CHANGE TRACKING ON SCHEMA::[tc] TO [P-SQL-R1-PRD-tc-owner]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[tc] TO [P-SQL-R1-PRD-tc-owner]
+GO
+
+
+
+CREATE USER [P-SQL-R1-PRD-tc-writer] FOR LOGIN [P-SQL-R1-PRD-tc-writer]
+GO
+ALTER USER [P-SQL-R1-PRD-tc-writer] WITH DEFAULT_SCHEMA=[tc]
+GO
+GRANT DELETE ON SCHEMA::[tc] TO [P-SQL-R1-PRD-tc-writer]
+GO
+GRANT INSERT ON SCHEMA::[tc] TO [P-SQL-R1-PRD-tc-writer]
+GO
+GRANT REFERENCES ON SCHEMA::[tc] TO [P-SQL-R1-PRD-tc-writer]
+GO
+GRANT SELECT ON SCHEMA::[tc] TO [P-SQL-R1-PRD-tc-writer]
+GO
+GRANT UPDATE ON SCHEMA::[tc] TO [P-SQL-R1-PRD-tc-writer]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[tc] TO [P-SQL-R1-PRD-tc-writer]
+GO
+
+
+
+CREATE USER [P-SQL-R1-PRD-tc-reader] FOR LOGIN [P-SQL-R1-PRD-tc-reader]
+GO
+ALTER USER [P-SQL-R1-PRD-tc-reader] WITH DEFAULT_SCHEMA=[tc]
+GO
+GRANT REFERENCES ON SCHEMA::[tc] TO [P-SQL-R1-PRD-tc-reader]
+GO
+GRANT SELECT ON SCHEMA::[tc] TO [P-SQL-R1-PRD-tc-reader]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[tc] TO [P-SQL-R1-PRD-tc-reader]
+GO
+
+
+
+
+USE [Rogue1]
+GO
+CREATE USER [P-SQL-R1-PRD-ccure-executor] FOR LOGIN [P-SQL-R1-PRD-ccure-executor]
+GO
+ALTER USER [P-SQL-R1-PRD-ccure-executor] WITH DEFAULT_SCHEMA=[ccure]
+GO
+GRANT CREATE SEQUENCE ON SCHEMA::[ccure] TO [P-SQL-R1-PRD-ccure-executor]
+GO
+GRANT EXECUTE ON SCHEMA::[ccure] TO [P-SQL-R1-PRD-ccure-executor]
+GO
+GRANT REFERENCES ON SCHEMA::[ccure] TO [P-SQL-R1-PRD-ccure-executor]
+GO
+GRANT SELECT ON SCHEMA::[ccure] TO [P-SQL-R1-PRD-ccure-executor]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[ccure] TO [P-SQL-R1-PRD-ccure-executor]
+GO
+
+
+
+
+CREATE USER [P-SQL-R1-PRD-ccure-owner] FOR LOGIN [P-SQL-R1-PRD-ccure-owner]
+GO
+ALTER USER [P-SQL-R1-PRD-ccure-owner] WITH DEFAULT_SCHEMA=[ccure]
+GO
+GRANT ALTER ON SCHEMA::[ccure] TO [P-SQL-R1-PRD-ccure-owner]
+GO
+GRANT CREATE SEQUENCE ON SCHEMA::[ccure] TO [P-SQL-R1-PRD-ccure-owner]
+GO
+GRANT DELETE ON SCHEMA::[ccure] TO [P-SQL-R1-PRD-ccure-owner]
+GO
+GRANT EXECUTE ON SCHEMA::[ccure] TO [P-SQL-R1-PRD-ccure-owner]
+GO
+GRANT INSERT ON SCHEMA::[ccure] TO [P-SQL-R1-PRD-ccure-owner]
+GO
+GRANT REFERENCES ON SCHEMA::[ccure] TO [P-SQL-R1-PRD-ccure-owner]
+GO
+GRANT SELECT ON SCHEMA::[ccure] TO [P-SQL-R1-PRD-ccure-owner]
+GO
+GRANT UPDATE ON SCHEMA::[ccure] TO [P-SQL-R1-PRD-ccure-owner]
+GO
+GRANT VIEW CHANGE TRACKING ON SCHEMA::[ccure] TO [P-SQL-R1-PRD-ccure-owner]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[ccure] TO [P-SQL-R1-PRD-ccure-owner]
+GO
+
+
+
+CREATE USER [P-SQL-R1-PRD-ccure-writer] FOR LOGIN [P-SQL-R1-PRD-ccure-writer]
+GO
+ALTER USER [P-SQL-R1-PRD-ccure-writer] WITH DEFAULT_SCHEMA=[ccure]
+GO
+GRANT DELETE ON SCHEMA::[ccure] TO [P-SQL-R1-PRD-ccure-writer]
+GO
+GRANT INSERT ON SCHEMA::[ccure] TO [P-SQL-R1-PRD-ccure-writer]
+GO
+GRANT REFERENCES ON SCHEMA::[ccure] TO [P-SQL-R1-PRD-ccure-writer]
+GO
+GRANT SELECT ON SCHEMA::[ccure] TO [P-SQL-R1-PRD-ccure-writer]
+GO
+GRANT UPDATE ON SCHEMA::[ccure] TO [P-SQL-R1-PRD-ccure-writer]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[ccure] TO [P-SQL-R1-PRD-ccure-writer]
+GO
+
+
+
+CREATE USER [P-SQL-R1-PRD-ccure-reader] FOR LOGIN [P-SQL-R1-PRD-ccure-reader]
+GO
+ALTER USER [P-SQL-R1-PRD-ccure-reader] WITH DEFAULT_SCHEMA=[ccure]
+GO
+GRANT REFERENCES ON SCHEMA::[ccure] TO [P-SQL-R1-PRD-ccure-reader]
+GO
+GRANT SELECT ON SCHEMA::[ccure] TO [P-SQL-R1-PRD-ccure-reader]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[ccure] TO [P-SQL-R1-PRD-ccure-reader]
+GO
+
+
+
+USE [Rogue1]
+GO
+CREATE USER [P-SQL-R1-PRD-etq_archive-executor] FOR LOGIN [P-SQL-R1-PRD-etq_archive-executor]
+GO
+ALTER USER [P-SQL-R1-PRD-etq_archive-executor] WITH DEFAULT_SCHEMA=[etq_archive]
+GO
+GRANT CREATE SEQUENCE ON SCHEMA::[etq_archive] TO [P-SQL-R1-PRD-etq_archive-executor]
+GO
+GRANT EXECUTE ON SCHEMA::[etq_archive] TO [P-SQL-R1-PRD-etq_archive-executor]
+GO
+GRANT REFERENCES ON SCHEMA::[etq_archive] TO [P-SQL-R1-PRD-etq_archive-executor]
+GO
+GRANT SELECT ON SCHEMA::[etq_archive] TO [P-SQL-R1-PRD-etq_archive-executor]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[etq_archive] TO [P-SQL-R1-PRD-etq_archive-executor]
+GO
+
+
+
+
+CREATE USER [P-SQL-R1-PRD-etq_archive-owner] FOR LOGIN [P-SQL-R1-PRD-etq_archive-owner]
+GO
+ALTER USER [P-SQL-R1-PRD-etq_archive-owner] WITH DEFAULT_SCHEMA=[etq_archive]
+GO
+GRANT ALTER ON SCHEMA::[etq_archive] TO [P-SQL-R1-PRD-etq_archive-owner]
+GO
+GRANT CREATE SEQUENCE ON SCHEMA::[etq_archive] TO [P-SQL-R1-PRD-etq_archive-owner]
+GO
+GRANT DELETE ON SCHEMA::[etq_archive] TO [P-SQL-R1-PRD-etq_archive-owner]
+GO
+GRANT EXECUTE ON SCHEMA::[etq_archive] TO [P-SQL-R1-PRD-etq_archive-owner]
+GO
+GRANT INSERT ON SCHEMA::[etq_archive] TO [P-SQL-R1-PRD-etq_archive-owner]
+GO
+GRANT REFERENCES ON SCHEMA::[etq_archive] TO [P-SQL-R1-PRD-etq_archive-owner]
+GO
+GRANT SELECT ON SCHEMA::[etq_archive] TO [P-SQL-R1-PRD-etq_archive-owner]
+GO
+GRANT UPDATE ON SCHEMA::[etq_archive] TO [P-SQL-R1-PRD-etq_archive-owner]
+GO
+GRANT VIEW CHANGE TRACKING ON SCHEMA::[etq_archive] TO [P-SQL-R1-PRD-etq_archive-owner]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[etq_archive] TO [P-SQL-R1-PRD-etq_archive-owner]
+GO
+
+
+
+CREATE USER [P-SQL-R1-PRD-etq_archive-writer] FOR LOGIN [P-SQL-R1-PRD-etq_archive-writer]
+GO
+ALTER USER [P-SQL-R1-PRD-etq_archive-writer] WITH DEFAULT_SCHEMA=[etq_archive]
+GO
+GRANT DELETE ON SCHEMA::[etq_archive] TO [P-SQL-R1-PRD-etq_archive-writer]
+GO
+GRANT INSERT ON SCHEMA::[etq_archive] TO [P-SQL-R1-PRD-etq_archive-writer]
+GO
+GRANT REFERENCES ON SCHEMA::[etq_archive] TO [P-SQL-R1-PRD-etq_archive-writer]
+GO
+GRANT SELECT ON SCHEMA::[etq_archive] TO [P-SQL-R1-PRD-etq_archive-writer]
+GO
+GRANT UPDATE ON SCHEMA::[etq_archive] TO [P-SQL-R1-PRD-etq_archive-writer]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[etq_archive] TO [P-SQL-R1-PRD-etq_archive-writer]
+GO
+
+
+
+CREATE USER [P-SQL-R1-PRD-etq_archive-reader] FOR LOGIN [P-SQL-R1-PRD-etq_archive-reader]
+GO
+ALTER USER [P-SQL-R1-PRD-etq_archive-reader] WITH DEFAULT_SCHEMA=[etq_archive]
+GO
+GRANT REFERENCES ON SCHEMA::[etq_archive] TO [P-SQL-R1-PRD-etq_archive-reader]
+GO
+GRANT SELECT ON SCHEMA::[etq_archive] TO [P-SQL-R1-PRD-etq_archive-reader]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[etq_archive] TO [P-SQL-R1-PRD-etq_archive-reader]
+GO
+
+
+
+
+USE [Rogue1]
+GO
+CREATE USER [P-SQL-R1-PRD-jira-executor] FOR LOGIN [P-SQL-R1-PRD-jira-executor]
+GO
+ALTER USER [P-SQL-R1-PRD-jira-executor] WITH DEFAULT_SCHEMA=[jira]
+GO
+GRANT CREATE SEQUENCE ON SCHEMA::[jira] TO [P-SQL-R1-PRD-jira-executor]
+GO
+GRANT EXECUTE ON SCHEMA::[jira] TO [P-SQL-R1-PRD-jira-executor]
+GO
+GRANT REFERENCES ON SCHEMA::[jira] TO [P-SQL-R1-PRD-jira-executor]
+GO
+GRANT SELECT ON SCHEMA::[jira] TO [P-SQL-R1-PRD-jira-executor]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[jira] TO [P-SQL-R1-PRD-jira-executor]
+GO
+
+
+
+
+CREATE USER [P-SQL-R1-PRD-jira-owner] FOR LOGIN [P-SQL-R1-PRD-jira-owner]
+GO
+ALTER USER [P-SQL-R1-PRD-jira-owner] WITH DEFAULT_SCHEMA=[jira]
+GO
+GRANT ALTER ON SCHEMA::[jira] TO [P-SQL-R1-PRD-jira-owner]
+GO
+GRANT CREATE SEQUENCE ON SCHEMA::[jira] TO [P-SQL-R1-PRD-jira-owner]
+GO
+GRANT DELETE ON SCHEMA::[jira] TO [P-SQL-R1-PRD-jira-owner]
+GO
+GRANT EXECUTE ON SCHEMA::[jira] TO [P-SQL-R1-PRD-jira-owner]
+GO
+GRANT INSERT ON SCHEMA::[jira] TO [P-SQL-R1-PRD-jira-owner]
+GO
+GRANT REFERENCES ON SCHEMA::[jira] TO [P-SQL-R1-PRD-jira-owner]
+GO
+GRANT SELECT ON SCHEMA::[jira] TO [P-SQL-R1-PRD-jira-owner]
+GO
+GRANT UPDATE ON SCHEMA::[jira] TO [P-SQL-R1-PRD-jira-owner]
+GO
+GRANT VIEW CHANGE TRACKING ON SCHEMA::[jira] TO [P-SQL-R1-PRD-jira-owner]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[jira] TO [P-SQL-R1-PRD-jira-owner]
+GO
+
+
+
+CREATE USER [P-SQL-R1-PRD-jira-writer] FOR LOGIN [P-SQL-R1-PRD-jira-writer]
+GO
+ALTER USER [P-SQL-R1-PRD-jira-writer] WITH DEFAULT_SCHEMA=[jira]
+GO
+GRANT DELETE ON SCHEMA::[jira] TO [P-SQL-R1-PRD-jira-writer]
+GO
+GRANT INSERT ON SCHEMA::[jira] TO [P-SQL-R1-PRD-jira-writer]
+GO
+GRANT REFERENCES ON SCHEMA::[jira] TO [P-SQL-R1-PRD-jira-writer]
+GO
+GRANT SELECT ON SCHEMA::[jira] TO [P-SQL-R1-PRD-jira-writer]
+GO
+GRANT UPDATE ON SCHEMA::[jira] TO [P-SQL-R1-PRD-jira-writer]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[jira] TO [P-SQL-R1-PRD-jira-writer]
+GO
+
+
+
+CREATE USER [P-SQL-R1-PRD-jira-reader] FOR LOGIN [P-SQL-R1-PRD-jira-reader]
+GO
+ALTER USER [P-SQL-R1-PRD-jira-reader] WITH DEFAULT_SCHEMA=[jira]
+GO
+GRANT REFERENCES ON SCHEMA::[jira] TO [P-SQL-R1-PRD-jira-reader]
+GO
+GRANT SELECT ON SCHEMA::[jira] TO [P-SQL-R1-PRD-jira-reader]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[jira] TO [P-SQL-R1-PRD-jira-reader]
+GO
+
+
+
+
+
+
+
+
+USE [Rogue1]
+GO
+CREATE USER [P-SQL-R1-PRD-QCode-executor] FOR LOGIN [P-SQL-R1-PRD-QCode-executor]
+GO
+ALTER USER [P-SQL-R1-PRD-QCode-executor] WITH DEFAULT_SCHEMA=[QCode]
+GO
+GRANT CREATE SEQUENCE ON SCHEMA::[QCode] TO [P-SQL-R1-PRD-QCode-executor]
+GO
+GRANT EXECUTE ON SCHEMA::[QCode] TO [P-SQL-R1-PRD-QCode-executor]
+GO
+GRANT REFERENCES ON SCHEMA::[QCode] TO [P-SQL-R1-PRD-QCode-executor]
+GO
+GRANT SELECT ON SCHEMA::[QCode] TO [P-SQL-R1-PRD-QCode-executor]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[QCode] TO [P-SQL-R1-PRD-QCode-executor]
+GO
+
+
+
+
+CREATE USER [P-SQL-R1-PRD-QCode-owner] FOR LOGIN [P-SQL-R1-PRD-QCode-owner]
+GO
+ALTER USER [P-SQL-R1-PRD-QCode-owner] WITH DEFAULT_SCHEMA=[QCode]
+GO
+GRANT ALTER ON SCHEMA::[QCode] TO [P-SQL-R1-PRD-QCode-owner]
+GO
+GRANT CREATE SEQUENCE ON SCHEMA::[QCode] TO [P-SQL-R1-PRD-QCode-owner]
+GO
+GRANT DELETE ON SCHEMA::[QCode] TO [P-SQL-R1-PRD-QCode-owner]
+GO
+GRANT EXECUTE ON SCHEMA::[QCode] TO [P-SQL-R1-PRD-QCode-owner]
+GO
+GRANT INSERT ON SCHEMA::[QCode] TO [P-SQL-R1-PRD-QCode-owner]
+GO
+GRANT REFERENCES ON SCHEMA::[QCode] TO [P-SQL-R1-PRD-QCode-owner]
+GO
+GRANT SELECT ON SCHEMA::[QCode] TO [P-SQL-R1-PRD-QCode-owner]
+GO
+GRANT UPDATE ON SCHEMA::[QCode] TO [P-SQL-R1-PRD-QCode-owner]
+GO
+GRANT VIEW CHANGE TRACKING ON SCHEMA::[QCode] TO [P-SQL-R1-PRD-QCode-owner]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[QCode] TO [P-SQL-R1-PRD-QCode-owner]
+GO
+
+
+
+CREATE USER [P-SQL-R1-PRD-QCode-writer] FOR LOGIN [P-SQL-R1-PRD-QCode-writer]
+GO
+ALTER USER [P-SQL-R1-PRD-QCode-writer] WITH DEFAULT_SCHEMA=[QCode]
+GO
+GRANT DELETE ON SCHEMA::[QCode] TO [P-SQL-R1-PRD-QCode-writer]
+GO
+GRANT INSERT ON SCHEMA::[QCode] TO [P-SQL-R1-PRD-QCode-writer]
+GO
+GRANT REFERENCES ON SCHEMA::[QCode] TO [P-SQL-R1-PRD-QCode-writer]
+GO
+GRANT SELECT ON SCHEMA::[QCode] TO [P-SQL-R1-PRD-QCode-writer]
+GO
+GRANT UPDATE ON SCHEMA::[QCode] TO [P-SQL-R1-PRD-QCode-writer]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[QCode] TO [P-SQL-R1-PRD-QCode-writer]
+GO
+
+
+
+CREATE USER [P-SQL-R1-PRD-QCode-reader] FOR LOGIN [P-SQL-R1-PRD-QCode-reader]
+GO
+ALTER USER [P-SQL-R1-PRD-QCode-reader] WITH DEFAULT_SCHEMA=[QCode]
+GO
+GRANT REFERENCES ON SCHEMA::[QCode] TO [P-SQL-R1-PRD-QCode-reader]
+GO
+GRANT SELECT ON SCHEMA::[QCode] TO [P-SQL-R1-PRD-QCode-reader]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[QCode] TO [P-SQL-R1-PRD-QCode-reader]
+GO
+
+
+
+USE [Rogue1]
+GO
+CREATE USER [P-SQL-R1-PRD-pub-executor] FOR LOGIN [P-SQL-R1-PRD-pub-executor]
+GO
+ALTER USER [P-SQL-R1-PRD-pub-executor] WITH DEFAULT_SCHEMA=[pub]
+GO
+GRANT CREATE SEQUENCE ON SCHEMA::[pub] TO [P-SQL-R1-PRD-pub-executor]
+GO
+GRANT EXECUTE ON SCHEMA::[pub] TO [P-SQL-R1-PRD-pub-executor]
+GO
+GRANT REFERENCES ON SCHEMA::[pub] TO [P-SQL-R1-PRD-pub-executor]
+GO
+GRANT SELECT ON SCHEMA::[pub] TO [P-SQL-R1-PRD-pub-executor]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[pub] TO [P-SQL-R1-PRD-pub-executor]
+GO
+
+
+
+
+CREATE USER [P-SQL-R1-PRD-pub-owner] FOR LOGIN [P-SQL-R1-PRD-pub-owner]
+GO
+ALTER USER [P-SQL-R1-PRD-pub-owner] WITH DEFAULT_SCHEMA=[pub]
+GO
+GRANT ALTER ON SCHEMA::[pub] TO [P-SQL-R1-PRD-pub-owner]
+GO
+GRANT CREATE SEQUENCE ON SCHEMA::[pub] TO [P-SQL-R1-PRD-pub-owner]
+GO
+GRANT DELETE ON SCHEMA::[pub] TO [P-SQL-R1-PRD-pub-owner]
+GO
+GRANT EXECUTE ON SCHEMA::[pub] TO [P-SQL-R1-PRD-pub-owner]
+GO
+GRANT INSERT ON SCHEMA::[pub] TO [P-SQL-R1-PRD-pub-owner]
+GO
+GRANT REFERENCES ON SCHEMA::[pub] TO [P-SQL-R1-PRD-pub-owner]
+GO
+GRANT SELECT ON SCHEMA::[pub] TO [P-SQL-R1-PRD-pub-owner]
+GO
+GRANT UPDATE ON SCHEMA::[pub] TO [P-SQL-R1-PRD-pub-owner]
+GO
+GRANT VIEW CHANGE TRACKING ON SCHEMA::[pub] TO [P-SQL-R1-PRD-pub-owner]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[pub] TO [P-SQL-R1-PRD-pub-owner]
+GO
+
+
+
+CREATE USER [P-SQL-R1-PRD-pub-writer] FOR LOGIN [P-SQL-R1-PRD-pub-writer]
+GO
+ALTER USER [P-SQL-R1-PRD-pub-writer] WITH DEFAULT_SCHEMA=[pub]
+GO
+GRANT DELETE ON SCHEMA::[pub] TO [P-SQL-R1-PRD-pub-writer]
+GO
+GRANT INSERT ON SCHEMA::[pub] TO [P-SQL-R1-PRD-pub-writer]
+GO
+GRANT REFERENCES ON SCHEMA::[pub] TO [P-SQL-R1-PRD-pub-writer]
+GO
+GRANT SELECT ON SCHEMA::[pub] TO [P-SQL-R1-PRD-pub-writer]
+GO
+GRANT UPDATE ON SCHEMA::[pub] TO [P-SQL-R1-PRD-pub-writer]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[pub] TO [P-SQL-R1-PRD-pub-writer]
+GO
+
+
+
+CREATE USER [P-SQL-R1-PRD-pub-reader] FOR LOGIN [P-SQL-R1-PRD-pub-reader]
+GO
+ALTER USER [P-SQL-R1-PRD-pub-reader] WITH DEFAULT_SCHEMA=[pub]
+GO
+GRANT REFERENCES ON SCHEMA::[pub] TO [P-SQL-R1-PRD-pub-reader]
+GO
+GRANT SELECT ON SCHEMA::[pub] TO [P-SQL-R1-PRD-pub-reader]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[pub] TO [P-SQL-R1-PRD-pub-reader]
+GO
+
+
+
+
+USE [Rogue1]
+GO
+CREATE USER [P-SQL-R1-PRD-office-executor] FOR LOGIN [P-SQL-R1-PRD-office-executor]
+GO
+ALTER USER [P-SQL-R1-PRD-office-executor] WITH DEFAULT_SCHEMA=[officespace]
+GO
+GRANT CREATE SEQUENCE ON SCHEMA::[officespace] TO [P-SQL-R1-PRD-office-executor]
+GO
+GRANT EXECUTE ON SCHEMA::[officespace] TO [P-SQL-R1-PRD-office-executor]
+GO
+GRANT REFERENCES ON SCHEMA::[officespace] TO [P-SQL-R1-PRD-office-executor]
+GO
+GRANT SELECT ON SCHEMA::[officespace] TO [P-SQL-R1-PRD-office-executor]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[officespace] TO [P-SQL-R1-PRD-office-executor]
+GO
+
+
+
+
+CREATE USER [P-SQL-R1-PRD-office-owner] FOR LOGIN [P-SQL-R1-PRD-office-owner]
+GO
+ALTER USER [P-SQL-R1-PRD-office-owner] WITH DEFAULT_SCHEMA=[officespace]
+GO
+GRANT ALTER ON SCHEMA::[officespace] TO [P-SQL-R1-PRD-office-owner]
+GO
+GRANT CREATE SEQUENCE ON SCHEMA::[officespace] TO [P-SQL-R1-PRD-office-owner]
+GO
+GRANT DELETE ON SCHEMA::[officespace] TO [P-SQL-R1-PRD-office-owner]
+GO
+GRANT EXECUTE ON SCHEMA::[officespace] TO [P-SQL-R1-PRD-office-owner]
+GO
+GRANT INSERT ON SCHEMA::[officespace] TO [P-SQL-R1-PRD-office-owner]
+GO
+GRANT REFERENCES ON SCHEMA::[officespace] TO [P-SQL-R1-PRD-office-owner]
+GO
+GRANT SELECT ON SCHEMA::[officespace] TO [P-SQL-R1-PRD-office-owner]
+GO
+GRANT UPDATE ON SCHEMA::[officespace] TO [P-SQL-R1-PRD-office-owner]
+GO
+GRANT VIEW CHANGE TRACKING ON SCHEMA::[officespace] TO [P-SQL-R1-PRD-office-owner]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[officespace] TO [P-SQL-R1-PRD-office-owner]
+GO
+
+
+
+CREATE USER [P-SQL-R1-PRD-office-writer] FOR LOGIN [P-SQL-R1-PRD-office-writer]
+GO
+ALTER USER [P-SQL-R1-PRD-office-writer] WITH DEFAULT_SCHEMA=[officespace]
+GO
+GRANT DELETE ON SCHEMA::[officespace] TO [P-SQL-R1-PRD-office-writer]
+GO
+GRANT INSERT ON SCHEMA::[officespace] TO [P-SQL-R1-PRD-office-writer]
+GO
+GRANT REFERENCES ON SCHEMA::[officespace] TO [P-SQL-R1-PRD-office-writer]
+GO
+GRANT SELECT ON SCHEMA::[officespace] TO [P-SQL-R1-PRD-office-writer]
+GO
+GRANT UPDATE ON SCHEMA::[officespace] TO [P-SQL-R1-PRD-office-writer]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[officespace] TO [P-SQL-R1-PRD-office-writer]
+GO
+
+
+
+CREATE USER [P-SQL-R1-PRD-office-reader] FOR LOGIN [P-SQL-R1-PRD-office-reader]
+GO
+ALTER USER [P-SQL-R1-PRD-office-reader] WITH DEFAULT_SCHEMA=[officespace]
+GO
+GRANT REFERENCES ON SCHEMA::[officespace] TO [P-SQL-R1-PRD-office-reader]
+GO
+GRANT SELECT ON SCHEMA::[officespace] TO [P-SQL-R1-PRD-office-reader]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[officespace] TO [P-SQL-R1-PRD-office-reader]
+GO
+
+
+
+
+USE [Rogue1]
+GO
+CREATE USER [P-SQL-R1-PRD-schedules-executor] FOR LOGIN [P-SQL-R1-PRD-schedules-executor]
+GO
+ALTER USER [P-SQL-R1-PRD-schedules-executor] WITH DEFAULT_SCHEMA=[schedules]
+GO
+GRANT CREATE SEQUENCE ON SCHEMA::[schedules] TO [P-SQL-R1-PRD-schedules-executor]
+GO
+GRANT EXECUTE ON SCHEMA::[schedules] TO [P-SQL-R1-PRD-schedules-executor]
+GO
+GRANT REFERENCES ON SCHEMA::[schedules] TO [P-SQL-R1-PRD-schedules-executor]
+GO
+GRANT SELECT ON SCHEMA::[schedules] TO [P-SQL-R1-PRD-schedules-executor]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[schedules] TO [P-SQL-R1-PRD-schedules-executor]
+GO
+
+
+
+
+CREATE USER [P-SQL-R1-PRD-schedules-owner] FOR LOGIN [P-SQL-R1-PRD-schedules-owner]
+GO
+ALTER USER [P-SQL-R1-PRD-schedules-owner] WITH DEFAULT_SCHEMA=[schedules]
+GO
+GRANT ALTER ON SCHEMA::[schedules] TO [P-SQL-R1-PRD-schedules-owner]
+GO
+GRANT CREATE SEQUENCE ON SCHEMA::[schedules] TO [P-SQL-R1-PRD-schedules-owner]
+GO
+GRANT DELETE ON SCHEMA::[schedules] TO [P-SQL-R1-PRD-schedules-owner]
+GO
+GRANT EXECUTE ON SCHEMA::[schedules] TO [P-SQL-R1-PRD-schedules-owner]
+GO
+GRANT INSERT ON SCHEMA::[schedules] TO [P-SQL-R1-PRD-schedules-owner]
+GO
+GRANT REFERENCES ON SCHEMA::[schedules] TO [P-SQL-R1-PRD-schedules-owner]
+GO
+GRANT SELECT ON SCHEMA::[schedules] TO [P-SQL-R1-PRD-schedules-owner]
+GO
+GRANT UPDATE ON SCHEMA::[schedules] TO [P-SQL-R1-PRD-schedules-owner]
+GO
+GRANT VIEW CHANGE TRACKING ON SCHEMA::[schedules] TO [P-SQL-R1-PRD-schedules-owner]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[schedules] TO [P-SQL-R1-PRD-schedules-owner]
+GO
+
+
+
+CREATE USER [P-SQL-R1-PRD-schedules-writer] FOR LOGIN [P-SQL-R1-PRD-schedules-writer]
+GO
+ALTER USER [P-SQL-R1-PRD-schedules-writer] WITH DEFAULT_SCHEMA=[schedules]
+GO
+GRANT DELETE ON SCHEMA::[schedules] TO [P-SQL-R1-PRD-schedules-writer]
+GO
+GRANT INSERT ON SCHEMA::[schedules] TO [P-SQL-R1-PRD-schedules-writer]
+GO
+GRANT REFERENCES ON SCHEMA::[schedules] TO [P-SQL-R1-PRD-schedules-writer]
+GO
+GRANT SELECT ON SCHEMA::[schedules] TO [P-SQL-R1-PRD-schedules-writer]
+GO
+GRANT UPDATE ON SCHEMA::[schedules] TO [P-SQL-R1-PRD-schedules-writer]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[schedules] TO [P-SQL-R1-PRD-schedules-writer]
+GO
+
+
+
+CREATE USER [P-SQL-R1-PRD-schedules-reader] FOR LOGIN [P-SQL-R1-PRD-schedules-reader]
+GO
+ALTER USER [P-SQL-R1-PRD-schedules-reader] WITH DEFAULT_SCHEMA=[schedules]
+GO
+GRANT REFERENCES ON SCHEMA::[schedules] TO [P-SQL-R1-PRD-schedules-reader]
+GO
+GRANT SELECT ON SCHEMA::[schedules] TO [P-SQL-R1-PRD-schedules-reader]
+GO
+GRANT VIEW DEFINITION ON SCHEMA::[schedules] TO [P-SQL-R1-PRD-schedules-reader]
+GO
+
+
+
+
+
+
+
+

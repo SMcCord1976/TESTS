@@ -1,0 +1,239 @@
+--ALL SERVERS
+
+--CREATE A USER FUNCTION ON ALL INSTANCES THAT RETURNS NON-PARAMETERIZED RESULTS FROM THE LOGINPROPERTY SYSTEM FUNCTION
+
+USE [master]
+GO
+
+IF OBJECT_ID('dbo.login_properties') IS NOT NULL DROP FUNCTION dbo.login_properties;
+GO
+CREATE FUNCTION dbo.login_properties(@login_name NVARCHAR(MAX))
+RETURNS TABLE
+AS
+RETURN SELECT
+LOGINPROPERTY(@login_name,'BadPasswordCount') AS [BadPasswordCount],
+LOGINPROPERTY(@login_name,'BadPasswordTime') AS [BadPasswordTime],
+LOGINPROPERTY(@login_name,'DaysUntilExpiration') AS [DaysUntilExpiration],
+LOGINPROPERTY(@login_name,'DefaultDatabase') AS [DefaultDatabase],
+LOGINPROPERTY(@login_name,'DefaultLanguage') AS [DefaultLanguage],
+LOGINPROPERTY(@login_name,'HistoryLength') AS [HistoryLength],
+LOGINPROPERTY(@login_name,'IsExpired') AS [IsExpired],
+LOGINPROPERTY(@login_name,'IsLocked') AS [IsLocked],
+LOGINPROPERTY(@login_name,'IsMustChange') AS [IsMustChange],
+LOGINPROPERTY(@login_name,'LockoutTime') AS [LockoutTime],
+LOGINPROPERTY(@login_name,'PasswordHash') AS [PasswordHash],
+LOGINPROPERTY(@login_name,'PasswordLastSetTime') AS [PasswordLastSetTime],
+LOGINPROPERTY(@login_name,'PasswordHashAlgorithm') AS [PasswordHashAlgorithm];
+
+
+--CREATE A TABLE TO HOUSE THE OUTPUT FROM THE login_properties UDF
+
+USE [spc_dba_utilities]
+GO
+
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE TABLE [dbo].[weekly_sql_auth_check_combined](
+	[ServerInstanceName] varchar(max) NOT NULL,
+	[AccountName] [sysname] NOT NULL,
+	[hasaccess] [int] NULL,
+	[sysadmin] [int] NULL,
+	[securityadmin] [int] NULL,
+	[PasswordLastSetTime] [sql_variant] NULL,
+	[IsMustChange] [sql_variant] NULL,
+	[DaysUntilExpiration] [sql_variant] NULL,
+	[IsExpired] [sql_variant] NULL,
+	[IsLocked] [sql_variant] NULL,
+	[LockoutTime] [sql_variant] NULL,
+	[BadPasswordCount] [sql_variant] NULL,
+	[BadPasswordTime] [sql_variant] NULL,
+	[DefaultLanguage] [sql_variant] NULL,
+	[DefaultDatabase] [sql_variant] NULL
+) ON [PRIMARY]
+GO
+
+
+--CREATE A STORED PROCEDURE TO OBTAIN THE RESULTS FROM:
+	--THE login_properties UDF TO CAPTURE ACCOUNT STATE INFORMATION
+	--PLUS THE RESULTS FROM THE dbo.syslogins SYSTEM TABLE --TO CAPTURE ACCOUNT NAME INFORMATION FOR ONLY SQL AUTH ACCOUNTS
+	--PLUS THE RESULTS FROM THE sys.sql_logins SYSTEM TABLE --TO CAPTURE ACCOUNT PERMISSION LEVELS
+
+USE [spc_dba_utilities]
+GO
+CREATE PROCEDURE [dba_sp_sql_auth_check] 
+AS
+DROP TABLE IF EXISTS [weekly_sql_auth_check];
+SELECT 
+  a.name AS [AccountName]
+, b.[hasaccess]
+, b.[sysadmin]
+, b.[securityadmin]
+, c.[PasswordLastSetTime]
+, c.[IsMustChange]
+, c.[DaysUntilExpiration]
+, c.[IsExpired]
+, c.[IsLocked]
+, c.[LockoutTime]
+, c.[BadPasswordCount]
+, c.[BadPasswordTime]
+, c.[DefaultLanguage]
+, c.[DefaultDatabase]
+INTO [weekly_sql_auth_check]
+FROM sys.sql_logins AS a
+JOIN dbo.syslogins AS b
+ON a.sid = b.sid
+CROSS APPLY dbo.login_properties(a.name) AS c
+WHERE a.name NOT LIKE '%#%'
+AND a.name != 'sa'
+AND a.name != '117968-a1' --SM
+AND a.name != '117962-a1' --JG
+AND a.name != 'cms_admin' --CMS
+;
+
+
+--weekly on mondays dump sql auth details into static temp table on each server
+
+
+
+USE [spc_dba_utilities]
+GO
+EXEC [dba_sp_sql_auth_check]
+GO
+
+--END ALL SERVERS SECTION
+
+
+/***********************************************************************************************************/
+/***********************************************************************************************************/
+/***********************************************************************************************************/
+/***********************************************************************************************************/
+/***********************************************************************************************************/
+/***********************************************************************************************************/
+
+
+
+
+
+--BEGIN CMS ONLY SECTION 
+
+--weekly on weds agent job with loop to combine results from individual static temp tables into central static temp table
+	--spc_dba_utilities..dba_weekly_sql_auth_check_combined
+	--table
+
+
+
+
+--DROP THE TEMP TABLE BEFORE STARTING
+DROP TABLE #sql_login_check
+
+--TRUNCATE THE STATIC COMMAND TABLE (STATIC BECAUSE IT HOLDS VALUES FROM MULTIPLE UPSTREAM TABLES)
+TRUNCATE TABLE dba_sql_auth_login_check_command
+
+--TRUNCATE THE STATIC COMBINED RESULTS TABLE (STATIC BECAUSE IT GETS POPULATED SERIALLY FROM MULTIPLE UPSTREAM VALUES) 
+TRUNCATE TABLE weekly_sql_auth_check_combined
+
+
+--LOOP THROUGH THE CMS TABLE, OBTAIN LINKED SERVER NAME
+--DYNAMICALLY CREATE INSERT STATEMENT FOR EACH LINKED SERVER THAT WAS OBTAINED
+DECLARE @server_id CHAR(25)
+
+SET ROWCOUNT 0
+
+SELECT * INTO #sql_login_check 
+	FROM sys.servers
+	WHERE is_linked = 1 --is an LSO
+	AND name LIKE 'CMS_%' --is an LSO created for Central Management
+
+
+SET ROWCOUNT 1
+
+SELECT @server_id = server_id FROM #sql_login_check
+
+WHILE @@ROWCOUNT <> 0
+BEGIN
+    SET ROWCOUNT 0
+
+INSERT INTO [spc_dba_utilities].[dbo].[dba_sql_auth_login_check_command]
+SELECT 
+'INSERT INTO [spc_dba_utilities].[dbo].[weekly_sql_auth_check_combined]
+([ServerInstanceName]
+,[AccountName]
+,[hasaccess]
+,[sysadmin]
+,[securityadmin]
+,[PasswordLastSetTime]
+,[IsMustChange]
+,[DaysUntilExpiration]
+,[IsExpired]
+,[IsLocked]
+,[LockoutTime]
+,[BadPasswordCount]
+,[BadPasswordTime]
+,[DefaultLanguage]
+,[DefaultDatabase])
+SELECT
+ [ServerInstanceName]
+,[AccountName]
+,[hasaccess]
+,[sysadmin]
+,[securityadmin]
+,[PasswordLastSetTime]
+,[IsMustChange]
+,[DaysUntilExpiration]
+,[IsExpired]
+,[IsLocked]
+,[LockoutTime]
+,[BadPasswordCount]
+,[BadPasswordTime]
+,[DefaultLanguage]
+,[DefaultDatabase]
+FROM [' + name + '].[spc_dba_utilities].[dbo].[weekly_sql_auth_check]'
+FROM #sql_login_check
+WHERE server_id = @server_id
+DELETE #sql_login_check WHERE server_id = @server_id
+
+    SET ROWCOUNT 1
+    
+SELECT @server_id = server_id FROM #sql_login_check
+END
+SET ROWCOUNT 0
+
+
+
+
+
+
+--DROP THE TEMP TABLE BEFORE STARTING
+DROP TABLE IF EXISTS #SQLAuthCommandExec
+
+--RECREATE THE TEMP TABLE FOR EACH INVOCATION
+CREATE TABLE #SQLAuthCommandExec (Command varchar(max), OrderBy INT IDENTITY(1,1))
+
+--INSERT DYNAMICALLY CREATED STATEMENTS INTO A TABLE THAT WILL ACTUALLY EXECUTE THOSE STATEMENTS
+INSERT INTO #SQLAuthCommandExec 
+SELECT * FROM [spc_dba_utilities].[dbo].[dba_sql_auth_login_check_command]
+
+--LOOP THROUGH TABLE, EXECUTE EACH STATEMENT PRESENT
+DECLARE @sqlcmd VARCHAR(MAX);
+
+SET @sqlcmd = (
+SELECT STRING_AGG(Command,';' + CHAR(10)) WITHIN GROUP (ORDER BY [OrderBy]) as cmd
+FROM #SQLAuthCommandExec
+)
+
+--PRINT(@sqlcmd); --FOR DEBUGGING
+EXEC(@sqlcmd);
+
+
+
+
+
+--REPORT FROM CENTRAL TABLE
+SELECT * FROM [spc_dba_utilities].[dbo].[weekly_sql_auth_check_combined]
+
+
+--SEND DATABASE MAIL TO RECIPIENTS

@@ -1,0 +1,66 @@
+SELECT [h].[run_date]
+	,[j].[name] AS [JobName]
+	,CASE 
+		WHEN LEFT([h].[message], 17) = 'Executed as user:'
+			THEN SUBSTRING([h].[message], 19, CHARINDEX('.', [h].[message], 1) - 18)
+		WHEN [h].[message] LIKE '%invoked by%'
+			THEN SUBSTRING([h].[message], CHARINDEX('invoked by ', [h].[message]) + 11, CHARINDEX('.', SUBSTRING([h].[message], CHARINDEX('invoked by ', [h].[message]) + 11, 99)) - 1)
+		ELSE [h].[message]
+		END AS [JobInvokedBy]
+	,[h].[step_name]
+	,CASE 
+		WHEN [h].[run_status] = 0
+			THEN 'Failed'
+		WHEN [h].[run_status] = 1
+			THEN 'Succeeded'
+		WHEN [h].[run_status] = 2
+			THEN 'Failed'
+		WHEN [h].[run_status] = 3
+			THEN 'Canceled'
+		WHEN [h].[run_status] = 4
+			THEN 'In Progress'
+		ELSE CAST([h].[run_status] AS VARCHAR(25))
+		END AS [run_status]
+FROM [msdb].[dbo].[sysjobs] AS [j]
+INNER JOIN [msdb].[dbo].[sysjobhistory] AS [h]
+	ON [j].[job_id] = [h].[job_id]
+WHERE [j].[name] LIKE '%Deployment%' --Only with a name that has this search term
+ORDER BY [JobName];
+GO
+
+
+
+--NOTE THAT SQLMI ONLY RETAINS A LIMITED AMOUNT OF HISTORY.  NEED TO CHANGE TO TEMPORAL TABLES, AND DEVELOP HISTORY RETENTION PROCEDURE.
+
+--ALTER TABLE [msdb].[dbo].[sysjobhistory] 
+--ADD StartTime DATETIME2 NOT NULL DEFAULT ('19000101 00:00:00.0000000') 
+--GO 
+
+--ALTER TABLE [msdb].[dbo].[sysjobhistory] 
+--ADD EndTime DATETIME2 NOT NULL DEFAULT ('99991231 23:59:59.9999999') 
+--GO 
+
+--ALTER TABLE [msdb].[dbo].[sysjobhistory] 
+--ADD PERIOD FOR SYSTEM_TIME (StartTime, EndTime) 
+--GO 
+
+--ALTER TABLE [msdb].[dbo].[sysjobhistory] 
+--ADD CONSTRAINT PK_sysjobhistory PRIMARY KEY (instance_id, job_id, step_id) 
+--GO 
+
+--ALTER TABLE [msdb].[dbo].[sysjobhistory] 
+--SET(SYSTEM_VERSIONING = ON (HISTORY_TABLE = [dbo].[sysjobhistoryall], DATA_CONSISTENCY_CHECK = ON, HISTORY_RETENTION_PERIOD = 1 MONTH)) 
+--GO 
+
+
+
+----The following system stored proc clears out the sysjobhistory table in accordance with the retention settings:
+
+--EXEC msdb.dbo.sp_purge_jobhistory 
+
+----With temporal tables ON even after you purge job history from the "regular" sysjobhistory table, you can read full job history records from the sysjobhistoryall table:
+
+--select * from msdb.dbo.sysjobhistoryall 
+
+----Need custom logic to retain history based upon business needs (i.e. only hold "Deployment" records, only hold records older than <date>, etc.)
+

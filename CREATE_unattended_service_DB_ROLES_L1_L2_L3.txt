@@ -1,0 +1,79 @@
+USE [spc_dba_utilities]
+GO
+
+/****** Object:  DatabaseRole [db_unattended_service_L1]    Script Date: 3/30/2024 11:55:43 AM ******/
+CREATE ROLE [db_unattended_service_L1]
+GO
+GRANT CONNECT TO [db_unattended_service_L1]
+GRANT CREATE AGGREGATE TO [db_unattended_service_L1]
+GRANT CREATE DEFAULT TO [db_unattended_service_L1]
+GRANT CREATE SCHEMA TO [db_unattended_service_L1]
+GRANT CREATE TABLE TO [db_unattended_service_L1]
+GRANT CREATE PROCEDURE TO [db_unattended_service_L1]
+GRANT CREATE FUNCTION TO [db_unattended_service_L1]
+GRANT CREATE VIEW TO [db_unattended_service_L1]
+GRANT SELECT TO [db_unattended_service_L1]
+GRANT REFERENCES TO [db_unattended_service_L1]
+GRANT VIEW DEFINITION TO [db_unattended_service_L1]
+GO
+EXEC sys.sp_addextendedproperty @name=N'Description', @value=N'This role grants the ability to create DDL and retrieve data at the database level' 
+, @level0type=N'USER'
+, @level0name=N'db_unattended_service_L1'
+GO
+
+
+
+CREATE ROLE [db_unattended_service_L2]
+GO
+GRANT CONNECT TO [db_unattended_service_L2]
+GRANT CREATE AGGREGATE TO [db_unattended_service_L2]
+GRANT CREATE DEFAULT TO [db_unattended_service_L2]
+GRANT CREATE SCHEMA TO [db_unattended_service_L2]
+GRANT CREATE TABLE TO [db_unattended_service_L2]
+GRANT CREATE PROCEDURE TO [db_unattended_service_L2]
+GRANT CREATE FUNCTION TO [db_unattended_service_L2]
+GRANT CREATE VIEW TO [db_unattended_service_L2]
+GRANT SELECT TO [db_unattended_service_L2]
+GRANT REFERENCES TO [db_unattended_service_L2]
+GRANT VIEW DEFINITION TO [db_unattended_service_L2]
+GRANT INSERT TO [db_unattended_service_L2]
+GRANT EXECUTE TO [db_unattended_service_L2]
+GRANT CREATE DATABASE DDL EVENT NOTIFICATION TO [db_unattended_service_L2] 
+GRANT SHOWPLAN TO [db_unattended_service_L2]
+GO
+EXEC sys.sp_addextendedproperty @name=N'Description'
+, @value=N'This role grants the ability to create DDL retrieve data add data and execute stored procedures at the database level' 
+, @level0type=N'USER'
+, @level0name=N'db_unattended_service_L2'
+GO
+
+
+
+CREATE ROLE [db_unattended_service_L3]
+GO
+GRANT CONNECT TO [db_unattended_service_L3]
+GRANT CREATE AGGREGATE TO [db_unattended_service_L3]
+GRANT CREATE DEFAULT TO [db_unattended_service_L3]
+GRANT CREATE SCHEMA TO [db_unattended_service_L3]
+GRANT CREATE TABLE TO [db_unattended_service_L3]
+GRANT CREATE PROCEDURE TO [db_unattended_service_L3]
+GRANT CREATE FUNCTION TO [db_unattended_service_L3]
+GRANT CREATE VIEW TO [db_unattended_service_L3]
+GRANT SELECT TO [db_unattended_service_L3]
+GRANT REFERENCES TO [db_unattended_service_L3]
+GRANT VIEW DEFINITION TO [db_unattended_service_L3]
+GRANT INSERT TO [db_unattended_service_L3]
+GRANT EXECUTE TO [db_unattended_service_L3]
+GRANT CREATE DATABASE DDL EVENT NOTIFICATION TO [db_unattended_service_L3] 
+GRANT SHOWPLAN TO [db_unattended_service_L3]
+GRANT UPDATE TO [db_unattended_service_L3]
+GRANT ALTER TO [db_unattended_service_L3]
+GRANT ALTER ANY SCHEMA TO [db_unattended_service_L3]
+GRANT ALTER ANY DATABASE DDL TRIGGER TO [db_unattended_service_L3]
+GO
+EXEC sys.sp_addextendedproperty @name=N'Description'
+, @value=N'This role grants the ability to create DDL retrieve data add data execute stored procedures change data drop objects and delete data at the database level' 
+, @level0type=N'USER'
+, @level0name=N'db_unattended_service_L3'
+GO
+

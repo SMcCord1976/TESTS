@@ -1,0 +1,397 @@
+
+USE [msdb]
+GO
+CREATE USER [git-saj-updater-prod] FOR LOGIN [git-saj-updater-prod]
+GO
+USE [msdb]
+GO
+ALTER ROLE [SQLAgentUserRole] ADD MEMBER [git-saj-updater-prod]
+GO
+USE [msdb]
+GO
+DENY EXECUTE ON [dbo].[sp_start_job] TO [git-saj-updater-prod]
+GO
+
+USE [msdb]
+GO
+DECLARE @jobId BINARY(16)
+EXEC  msdb.dbo.sp_add_job @job_name=N'Code Staging - github-saj-updater-prod', 
+		@enabled=1, 
+		@notify_level_eventlog=0, 
+		@notify_level_email=2, 
+		@notify_level_page=2, 
+		@delete_level=0, 
+		@category_name=N'[Uncategorized (Local)]', 
+		@owner_login_name=N'git-saj-updater-prod', @job_id = @jobId OUTPUT
+select @jobId
+GO
+EXEC msdb.dbo.sp_add_jobserver @job_name=N'Code Staging - git-saj-updater-prod', @server_name = N'ROGUE1-PROD-AZ-SQLMI.EBD40893D4B0.DATABASE.USGOVCLOUDAPI.NET'
+GO
+USE [msdb]
+GO
+EXEC msdb.dbo.sp_add_jobstep @job_name=N'Code Staging - git-saj-updater-prod', @step_name=N'COMMENTS / INSTRUCTIONS', 
+		@step_id=1, 
+		@cmdexec_success_code=0, 
+		@on_success_action=1, 
+		@on_fail_action=3, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'/* PLACE ANY COMMENTS OR WRITTEN INSTRUCTIONS HERE */', 
+		@database_name=N'master', 
+		@flags=0
+GO
+USE [msdb]
+GO
+EXEC msdb.dbo.sp_update_job @job_name=N'Code Staging - git-saj-updater-prod', 
+		@enabled=1, 
+		@start_step_id=1, 
+		@notify_level_eventlog=0, 
+		@notify_level_email=2, 
+		@notify_level_page=2, 
+		@delete_level=0, 
+		@description=N'', 
+		@category_name=N'[Uncategorized (Local)]', 
+		@owner_login_name=N'git-saj-updater-prod', 
+		@notify_email_operator_name=N'', 
+		@notify_page_operator_name=N''
+GO
+
+
+
+
+USE [master]
+GO
+CREATE LOGIN [ashley.galvan@sierraspace.com] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+USE [msdb]
+GO
+CREATE USER [ashley.galvan@sierraspace.com] FOR LOGIN [ashley.galvan@sierraspace.com]
+GO
+USE [msdb]
+GO
+ALTER ROLE [SQLAgentUserRole] ADD MEMBER [ashley.galvan@sierraspace.com]
+GO
+USE [msdb]
+GO
+DENY EXECUTE ON [dbo].[sp_start_job] TO [ashley.galvan@sierraspace.com]
+GO
+
+
+USE [master]
+GO
+CREATE LOGIN [john.volf@sierraspace.com] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+USE [msdb]
+GO
+CREATE USER [john.volf@sierraspace.com] FOR LOGIN [john.volf@sierraspace.com]
+GO
+USE [msdb]
+GO
+ALTER ROLE [SQLAgentUserRole] ADD MEMBER [john.volf@sierraspace.com]
+GO
+USE [msdb]
+GO
+DENY EXECUTE ON [dbo].[sp_start_job] TO [john.volf-a1@sierraspace.com]
+GO
+
+USE [msdb]
+GO
+DECLARE @jobId BINARY(16)
+EXEC  msdb.dbo.sp_add_job @job_name=N'Code Staging - john.volf', 
+		@enabled=1, 
+		@notify_level_eventlog=0, 
+		@notify_level_email=2, 
+		@notify_level_page=2, 
+		@delete_level=0, 
+		@category_name=N'[Uncategorized (Local)]', 
+		@owner_login_name=N'john.volf@sierraspace.com', @job_id = @jobId OUTPUT
+select @jobId
+GO
+EXEC msdb.dbo.sp_add_jobserver @job_name=N'Code Staging - john.volf', @server_name = N'ROGUE1-PROD-AZ-SQLMI.EBD40893D4B0.DATABASE.USGOVCLOUDAPI.NET'
+GO
+USE [msdb]
+GO
+EXEC msdb.dbo.sp_add_jobstep @job_name=N'Code Staging - john.volf', @step_name=N'COMMENTS / INSTRUCTIONS', 
+		@step_id=1, 
+		@cmdexec_success_code=0, 
+		@on_success_action=1, 
+		@on_fail_action=3, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'/* PLACE ANY COMMENTS OR WRITTEN INSTRUCTIONS HERE */', 
+		@database_name=N'master', 
+		@flags=0
+GO
+USE [msdb]
+GO
+EXEC msdb.dbo.sp_update_job @job_name=N'Code Staging - john.volf', 
+		@enabled=1, 
+		@start_step_id=1, 
+		@notify_level_eventlog=0, 
+		@notify_level_email=2, 
+		@notify_level_page=2, 
+		@delete_level=0, 
+		@description=N'', 
+		@category_name=N'[Uncategorized (Local)]', 
+		@owner_login_name=N'john.volf@sierraspace.com', 
+		@notify_email_operator_name=N'', 
+		@notify_page_operator_name=N''
+GO
+
+USE [master]
+GO
+CREATE LOGIN [casey.marincin@sierraspace.com] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+USE [msdb]
+GO
+CREATE USER [casey.marincin@sierraspace.com] FOR LOGIN [casey.marincin@sierraspace.com]
+GO
+USE [msdb]
+GO
+ALTER ROLE [SQLAgentUserRole] ADD MEMBER [casey.marincin@sierraspace.com]
+GO
+USE [msdb]
+GO
+DENY EXECUTE ON [dbo].[sp_start_job] TO [casey.marincin@sierraspace.com]
+GO
+
+USE [msdb]
+GO
+DECLARE @jobId BINARY(16)
+EXEC  msdb.dbo.sp_add_job @job_name=N'Code Staging - casey.marincin', 
+		@enabled=1, 
+		@notify_level_eventlog=0, 
+		@notify_level_email=2, 
+		@notify_level_page=2, 
+		@delete_level=0, 
+		@category_name=N'[Uncategorized (Local)]', 
+		@owner_login_name=N'casey.marincin@sierraspace.com', @job_id = @jobId OUTPUT
+select @jobId
+GO
+EXEC msdb.dbo.sp_add_jobserver @job_name=N'Code Staging - casey.marincin', @server_name = N'ROGUE1-PROD-AZ-SQLMI.EBD40893D4B0.DATABASE.USGOVCLOUDAPI.NET'
+GO
+USE [msdb]
+GO
+EXEC msdb.dbo.sp_add_jobstep @job_name=N'Code Staging - casey.marincin', @step_name=N'COMMENTS / INSTRUCTIONS', 
+		@step_id=1, 
+		@cmdexec_success_code=0, 
+		@on_success_action=1, 
+		@on_fail_action=3, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'/* PLACE ANY COMMENTS OR WRITTEN INSTRUCTIONS HERE */', 
+		@database_name=N'master', 
+		@flags=0
+GO
+USE [msdb]
+GO
+EXEC msdb.dbo.sp_update_job @job_name=N'Code Staging - casey.marincin', 
+		@enabled=1, 
+		@start_step_id=1, 
+		@notify_level_eventlog=0, 
+		@notify_level_email=2, 
+		@notify_level_page=2, 
+		@delete_level=0, 
+		@description=N'', 
+		@category_name=N'[Uncategorized (Local)]', 
+		@owner_login_name=N'casey.marincin@sierraspace.com', 
+		@notify_email_operator_name=N'', 
+		@notify_page_operator_name=N''
+GO
+
+USE [master]
+GO
+CREATE LOGIN [scott.hanks@sierraspace.com] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+USE [msdb]
+GO
+CREATE USER [scott.hanks@sierraspace.com] FOR LOGIN [scott.hanks@sierraspace.com]
+GO
+USE [msdb]
+GO
+ALTER ROLE [SQLAgentUserRole] ADD MEMBER [scott.hanks@sierraspace.com]
+GO
+USE [msdb]
+GO
+DENY EXECUTE ON [dbo].[sp_start_job] TO [scott.hanks@sierraspace.com]
+GO
+
+
+USE [msdb]
+GO
+DECLARE @jobId BINARY(16)
+EXEC  msdb.dbo.sp_add_job @job_name=N'Code Staging - scott.hanks', 
+		@enabled=1, 
+		@notify_level_eventlog=0, 
+		@notify_level_email=2, 
+		@notify_level_page=2, 
+		@delete_level=0, 
+		@category_name=N'[Uncategorized (Local)]', 
+		@owner_login_name=N'scott.hanks@sierraspace.com', @job_id = @jobId OUTPUT
+select @jobId
+GO
+EXEC msdb.dbo.sp_add_jobserver @job_name=N'Code Staging - scott.hanks', @server_name = N'ROGUE1-PROD-AZ-SQLMI.EBD40893D4B0.DATABASE.USGOVCLOUDAPI.NET'
+GO
+USE [msdb]
+GO
+EXEC msdb.dbo.sp_add_jobstep @job_name=N'Code Staging - scott.hanks', @step_name=N'COMMENTS / INSTRUCTIONS', 
+		@step_id=1, 
+		@cmdexec_success_code=0, 
+		@on_success_action=1, 
+		@on_fail_action=3, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'/* PLACE ANY COMMENTS OR WRITTEN INSTRUCTIONS HERE */', 
+		@database_name=N'master', 
+		@flags=0
+GO
+USE [msdb]
+GO
+EXEC msdb.dbo.sp_update_job @job_name=N'Code Staging - scott.hanks', 
+		@enabled=1, 
+		@start_step_id=1, 
+		@notify_level_eventlog=0, 
+		@notify_level_email=2, 
+		@notify_level_page=2, 
+		@delete_level=0, 
+		@description=N'', 
+		@category_name=N'[Uncategorized (Local)]', 
+		@owner_login_name=N'scott.hanks@sierraspace.com', 
+		@notify_email_operator_name=N'', 
+		@notify_page_operator_name=N''
+GO
+
+
+
+USE [master]
+GO
+CREATE LOGIN [norman.fleet@sierraspace.com] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+USE [msdb]
+GO
+CREATE USER [norman.fleet@sierraspace.com] FOR LOGIN [norman.fleet@sierraspace.com]
+GO
+USE [msdb]
+GO
+ALTER ROLE [SQLAgentUserRole] ADD MEMBER [norman.fleet@sierraspace.com]
+GO
+DENY EXECUTE ON [dbo].[sp_start_job] TO [norman.fleet@sierraspace.com]
+GO
+
+
+USE [msdb]
+GO
+DECLARE @jobId BINARY(16)
+EXEC  msdb.dbo.sp_add_job @job_name=N'Code Staging - norman.fleet', 
+		@enabled=1, 
+		@notify_level_eventlog=0, 
+		@notify_level_email=2, 
+		@notify_level_page=2, 
+		@delete_level=0, 
+		@category_name=N'[Uncategorized (Local)]', 
+		@owner_login_name=N'norman.fleet@sierraspace.com', @job_id = @jobId OUTPUT
+select @jobId
+GO
+EXEC msdb.dbo.sp_add_jobserver @job_name=N'Code Staging - norman.fleet', @server_name = N'ROGUE1-PROD-AZ-SQLMI.EBD40893D4B0.DATABASE.USGOVCLOUDAPI.NET'
+GO
+USE [msdb]
+GO
+EXEC msdb.dbo.sp_add_jobstep @job_name=N'Code Staging - norman.fleet', @step_name=N'COMMENTS / INSTRUCTIONS', 
+		@step_id=1, 
+		@cmdexec_success_code=0, 
+		@on_success_action=1, 
+		@on_fail_action=3, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'/* PLACE ANY COMMENTS OR WRITTEN INSTRUCTIONS HERE */', 
+		@database_name=N'master', 
+		@flags=0
+GO
+USE [msdb]
+GO
+EXEC msdb.dbo.sp_update_job @job_name=N'Code Staging - norman.fleet', 
+		@enabled=1, 
+		@start_step_id=1, 
+		@notify_level_eventlog=0, 
+		@notify_level_email=2, 
+		@notify_level_page=2, 
+		@delete_level=0, 
+		@description=N'', 
+		@category_name=N'[Uncategorized (Local)]', 
+		@owner_login_name=N'norman.fleet@sierraspace.com', 
+		@notify_email_operator_name=N'', 
+		@notify_page_operator_name=N''
+GO
+
+
+USE [master]
+GO
+CREATE LOGIN [ron.chan@sierraspace.com] FROM EXTERNAL PROVIDER WITH DEFAULT_DATABASE=[master]
+GO
+USE [msdb]
+GO
+CREATE USER [ron.chan@sierraspace.com] FOR LOGIN [ron.chan@sierraspace.com]
+GO
+USE [msdb]
+GO
+ALTER ROLE [SQLAgentUserRole] ADD MEMBER [ron.chan@sierraspace.com]
+GO
+DENY EXECUTE ON [dbo].[sp_start_job] TO [ron.chan@sierraspace.com]
+GO
+
+
+USE [msdb]
+GO
+DECLARE @jobId BINARY(16)
+EXEC  msdb.dbo.sp_add_job @job_name=N'Code Staging - ron.chan', 
+		@enabled=1, 
+		@notify_level_eventlog=0, 
+		@notify_level_email=2, 
+		@notify_level_page=2, 
+		@delete_level=0, 
+		@category_name=N'[Uncategorized (Local)]', 
+		@owner_login_name=N'ron.chan@sierraspace.com', @job_id = @jobId OUTPUT
+select @jobId
+GO
+EXEC msdb.dbo.sp_add_jobserver @job_name=N'Code Staging - ron.chan', @server_name = N'ROGUE1-PROD-AZ-SQLMI.EBD40893D4B0.DATABASE.USGOVCLOUDAPI.NET'
+GO
+USE [msdb]
+GO
+EXEC msdb.dbo.sp_add_jobstep @job_name=N'Code Staging - ron.chan', @step_name=N'COMMENTS / INSTRUCTIONS', 
+		@step_id=1, 
+		@cmdexec_success_code=0, 
+		@on_success_action=1, 
+		@on_fail_action=3, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'/* PLACE ANY COMMENTS OR WRITTEN INSTRUCTIONS HERE */', 
+		@database_name=N'master', 
+		@flags=0
+GO
+USE [msdb]
+GO
+EXEC msdb.dbo.sp_update_job @job_name=N'Code Staging - ron.chan', 
+		@enabled=1, 
+		@start_step_id=1, 
+		@notify_level_eventlog=0, 
+		@notify_level_email=2, 
+		@notify_level_page=2, 
+		@delete_level=0, 
+		@description=N'', 
+		@category_name=N'[Uncategorized (Local)]', 
+		@owner_login_name=N'ron.chan@sierraspace.com', 
+		@notify_email_operator_name=N'', 
+		@notify_page_operator_name=N''
+GO
+
+
+
+
+
+

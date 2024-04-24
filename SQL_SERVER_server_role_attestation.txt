@@ -1,0 +1,280 @@
+
+--USE [spc_dba_utilities]
+--GO
+
+--CREATE PROCEDURE [dba_sp_server_level_role_members]
+--AS
+----SHOW ALL HEAVILY SCRUTINIZED ROLE MEMBERS
+--BEGIN 
+
+--/**************************************************************************************/
+--/*					dba_sp_server_level_role_members - V1 - 04/2024                   */
+--/*  Show members of scrutinized server level roles                                    */
+--/*                                                                                    */
+--/* USAGE: Requires NO parameters.                                                     */
+--/* EX:		EXEC [dba_sp_server_level_role_members]                                   */
+--/**************************************************************************************/
+
+--/**************************************************************************************/
+--/*                  CHANGE LOG                                                        */
+--/* 20240417 - McCord - Initial release                                                */
+--/*                                                                                    */
+--/**************************************************************************************/
+
+
+----Clean up temp tables from last invocation
+--IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[server_level_role_attestation_TEMP]') AND type in (N'U'))
+--BEGIN
+--DROP TABLE [spc_dba_utilities].[dbo].[server_level_role_attestation_TEMP]
+--END
+
+--SELECT NAME AS 'SERVER_LOGIN_NAME' /* THE NAME OF THE USER*/
+--	,CASE isntname
+--		WHEN 1 THEN 'WINDOWS OBJECT' 
+--		WHEN 0 THEN 'SQL AUTHENTICATED LOGIN' 
+--	 END AS 'LOGIN_ACCOUNT_TYPE' /* IS SERVER_LOGIN_NAME A WINDOWS LOGIN (1) OR SQL LOGIN (0) */
+--	,CASE isntgroup 
+--		WHEN 1 THEN 'ACTIVE DIRECTORY / ENTRA ID SECURITY GROUP'
+--		WHEN 0 THEN 'NO'
+--	 END AS 'IS_WINDOWS_GROUP' /* IS SERVER_LOGIN_NAME A WINDOWS GROUP (1) (i.e. NOT an individual user) */
+--	,CASE isntuser 
+--		WHEN 1 THEN 'INDIVIDUAL WINDOWS ACCOUNT'
+--		WHEN 0 THEN 'NO'
+--	 END AS 'IS_WINDOWS_USER' /* IS SERVER_LOGIN_NAME A WINDOWS USER (1) (i.e. NOT a group) */
+--	,CASE sysadmin
+--		WHEN 1 THEN 'MEMBER OF sysadmin ROLE'
+--		WHEN 0 THEN 'NO'
+--	 END AS 'IS_sysadmin'
+--	,CASE serveradmin
+--		WHEN 1 THEN 'MEMBER OF serveradmin ROLE'
+--		WHEN 0 THEN 'NO'
+--	 END AS 'IS_serveradmin'
+--	,CASE processadmin
+--		WHEN 1 THEN 'MEMBER OF processadmin ROLE'
+--		WHEN 0 THEN 'NO'
+--	 END AS 'IS_processadmin'
+--	,CASE dbcreator
+--		WHEN 1 THEN 'MEMBER OF dbcreator ROLE'
+--		WHEN 0 THEN 'NO'
+--	 END AS 'IS_dbcreator'
+--	,CASE setupadmin
+--		WHEN 1 THEN 'MEMBER OF setupadmin ROLE'
+--		WHEN 0 THEN 'NO'
+--	 END AS 'IS_setupadmin'
+--INTO [spc_dba_utilities].[dbo].[server_level_role_attestation_TEMP]
+--FROM master.dbo.syslogins 
+--	WHERE (sysadmin = 1  /* MOST HIGHLY SCRUTINIZED ROLE */
+--		OR serveradmin = 1  /* HEAVILY SCRUTINIZED ROLE */
+--		OR securityadmin = 1  /* HEAVILY SCRUTINIZED ROLE */
+--		OR processadmin = 1  /* HEAVILY SCRUTINIZED ROLE */
+--		OR dbcreator = 1  /* HEAVILY SCRUTINIZED ROLE */
+--		OR setupadmin = 1)  /* HEAVILY SCRUTINIZED ROLE */
+--AND NAME NOT LIKE 'NT SERVICE%'
+--AND NAME NOT LIKE 'NT AUTHORITY%'
+--AND NAME NOT LIKE '##%'
+--	ORDER BY LOGIN_ACCOUNT_TYPE, IS_WINDOWS_GROUP, IS_WINDOWS_USER
+
+--END
+
+
+
+--execute proc
+EXEC [spc_dba_utilities].[dbo].[dba_sp_server_level_role_members]
+
+
+--Dump proc output into #temp table
+
+SELECT * INTO #serverrolestemp
+FROM spc_dba_utilities.dbo.server_level_role_attestation_TEMP
+--WHERE SERVER_LOGIN_NAME NOT IN ('117968-a1','117962-a1','cms_admin','idera_dm_admin','sa')
+
+
+DECLARE @CountValue INT
+SELECT @CountValue = COUNT(*)
+FROM spc_dba_utilities..server_level_role_attestation_TEMP
+
+IF (@CountValue = 0)
+BEGIN 
+
+--Declare variables
+DECLARE @ServerName VARCHAR(255)
+DECLARE @MailSubject VARCHAR(255)
+DECLARE @CombinedSubject VARCHAR(255)
+--DECLARE @xml NVARCHAR(MAX) --XML VARIABLE DECLARED IN ACCOUNTS DETECTED SECTION
+DECLARE @blankbody NVARCHAR(MAX)
+
+--Set variables
+SET @ServerName =  @@SERVERNAME
+SET @MailSubject = '[FOR INFORMATION / REVIEW] - SQL Server Role Attestation Report for ' + @@SERVERNAME
+SET @CombinedSubject = @ServerName + @MailSubject
+
+
+SET @blankbody = 'NO ACCOUNTS WITH ELEVATED ACCESS DETECTED ON THE INSTANCE
+
+~*~NFAR~*~'
+
+--Trigger the email 
+EXEC msdb.dbo.sp_send_dbmail
+	@profile_name = 'SQLServer'
+,	@recipients = 'stephen.mccord@sierraspace.com; joshua.grasso@sierraspace.com'
+,	@subject = @MailSubject
+,	@body = @blankbody
+,   @body_format = 'HTML';
+
+END
+
+ELSE 
+
+BEGIN
+
+-- define CSS inside the HTML head section
+DECLARE @body VARCHAR(MAX)= '
+<html>
+<head> <style>
+ #g {color: green;}
+ #r {color: red;}
+ #orng {color: orange;}
+ #odd {background-color: lightgrey}
+</style> </head>';
+ 
+DECLARE @i INT = 0
+, @pos INT
+, @s VARCHAR(MAX)
+, @ts VARCHAR(MAX)
+, @xml VARCHAR(MAX);
+
+
+DECLARE @recipients VARCHAR(MAX) = 'stephen.mccord@sierraspace.com; joshua.grasso@sierraspace.com' 
+--DECLARE @ServerName VARCHAR(255)
+--DECLARE @MailSubject VARCHAR(255)
+--DECLARE @CombinedSubject VARCHAR(255)
+
+
+--Set variables
+SET @ServerName =  @@SERVERNAME
+SET @MailSubject = '[FOR INFORMATION / REVIEW] - SQL Server Role Attestation Report for ' + @@SERVERNAME
+SET @CombinedSubject = @ServerName + @MailSubject
+
+
+ 
+--get core xml string
+SET @xml = CAST(( SELECT 
+CASE WHEN [SERVER_LOGIN_NAME] NOT IN ('117968-a1','117962-a1','cms_admin','idera_dm_admin','sa', 'SIERRASPACE\P-AllSQL-DBMS-Sysadmin')
+		THEN'zr'+CAST([SERVER_LOGIN_NAME] AS VARCHAR(75))
+	 WHEN [SERVER_LOGIN_NAME] LIKE ('%P-AllSQL-DBMS-Sysadmin%')
+		THEN'zorng'+CAST([SERVER_LOGIN_NAME] AS VARCHAR(75))
+     WHEN [SERVER_LOGIN_NAME] IN ('117968-a1','117962-a1','cms_admin','idera_dm_admin','sa')
+		THEN'zg'+CAST([SERVER_LOGIN_NAME] AS VARCHAR(75))
+     ELSE CAST([SERVER_LOGIN_NAME] AS VARCHAR(75))
+END AS 'td'
+, ''
+,[LOGIN_ACCOUNT_TYPE] AS 'td'
+,''
+,[IS_WINDOWS_GROUP] AS 'td'
+,''
+,[IS_WINDOWS_USER] AS 'td'
+,''
+,[IS_sysadmin] AS 'td'
+,''
+,[IS_serveradmin] AS 'td'
+,''
+,[IS_processadmin] AS 'td'
+,''
+,[IS_dbcreator] AS 'td'
+,''
+,[IS_setupadmin] AS 'td'
+,''
+FROM  #serverrolestemp
+ORDER BY [IS_WINDOWS_GROUP], [SERVER_LOGIN_NAME]
+FOR XML PATH('tr'), ELEMENTS ) AS NVARCHAR(MAX));
+
+
+--EVALUATE CASE STATEMENT.  COLOR TEXT FONT ACCORDINGLY. 
+SET @xml=REPLACE(@xml, '<td>zg', '<td id="g">'); -- Green
+SET @xml=REPLACE(@xml, '<td>zr', '<td id="r">'); -- Red
+SET @xml=REPLACE(@xml, '<td>zorng', '<td id="orng">'); -- Orange
+
+--ZEBRA STRIPE THE ROWS IN THE RESULT SET 
+SELECT @s = ''
+, @pos = CHARINDEX('<tr>', @xml, 4);
+ 
+WHILE(@pos > 0)
+BEGIN
+   SET @i += 1;
+   SET @ts = SUBSTRING(@xml, 1, @pos-1)
+   IF(@i % 2 = 1)
+      set @ts = REPLACE(@ts, '<tr>', '<tr id="odd">');
+   SET @s += @ts;
+   SET @xml = SUBSTRING(@xml, @pos, LEN(@xml));
+   SET @pos =  CHARINDEX('<tr>', @xml, 4);
+END -- while
+-- handling the last piece
+SET @i +=1;
+SET @ts = @xml;
+IF(@i % 2 = 1)
+   SET @ts = REPLACE(@ts, '<tr>', '<tr id="odd">');
+SET @s += @ts;
+
+--WRITE RESULT SET TO EMAIL BODY
+SET @body +=
+'<body>
+<H3>Highly Elevated SQL Server Instance Level Access Report</H3>
+<BR>
+Below is a list of accounts present on: <H3>' + @@SERVERNAME + '</H3>
+<BR><BR>
+The accounts listed are members of a highly scrutinized role within SQL Server on the above named instance.
+<BR><BR>
+<p style="margin-left:20px;">
+-Accounts that are listed using green font are SQL Server Authenticated accounts that are used to perform the Database Administration function.  
+</p>
+<p style="margin-left:50px;">
+-A list of default administrative accounts can be found at the following link:  https://confluence.sierraspace.com/x/MgGFEQ 
+</p>
+<p style="margin-left:20px;">
+-Accounts that are listed using orange font are Windows Security Groups that should only contain Windows Accounts that belong to members of the Database Administration function.  
+</p>
+<p style="margin-left:50px;">
+-Provisioning membership to such groups is controlled via ActiveDirectory, and should be attested to and verified by the CyberSecurity function.
+</p>
+<p style="margin-left:20px;">
+-Accounts that are listed using red font should be scrutinized and verified for appropriateness as necessary by Solution Owners, CyberSecurity <i>(ActiveDirectory platform administrator)</i>, Leadership, and the Database Administration function.
+</p>
+<BR>
+<table border = 1> 
+<tr>
+
+<th> ACCOUNT NAME </th> 
+<th> TYPE OF ACCOUNT </th> 
+<th> IS ACCOUNT A WINDOWS GROUP? </th> 
+<th> IS ACCOUNT A WINDOWS USER? </th> 
+<th> IS ACCOUNT MEMBER OF sysadmin ROLE? </th> 
+<th> IS ACCOUNT MEMBER OF serveradmin ROLE? </th> 
+<th> IS ACCOUNT MEMBER OF processadmin ROLE? </th> 
+<th> IS ACCOUNT MEMBER OF dbcreator ROLE? </th> 
+<th> IS ACCOUNT MEMBER OF setupadmin ROLE? </th>
+
+
+</tr>' 
++ @s+'</table> </body> </html>
+<BR><BR>
+Regards,
+<BR>
+SierraSpace Database Solutions
+<BR><BR><BR><BR>
+
+<H3>RE:  ITGC-APD-3, ITGC-APD-5, ITGC-APD-7, ITGC-APD-9, ITGC-APD-10</H3>
+' ;
+ 
+
+
+EXEC msdb.dbo.sp_send_dbmail
+@profile_name = 'SQLServer'
+--,@recipients = @recipients
+,@recipients = 'stephen.mccord@sierraspace.com' --DEBUGGING
+,@subject = @MailSubject
+,@body = @body
+,@body_format ='HTML'
+END
+
+
+DROP TABLE #serverrolestemp

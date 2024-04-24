@@ -1,0 +1,490 @@
+--FIND AND REPLACE:
+--'%CTDB%'
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_atlassian_test].[master].[sys].[servers] a, [CMS_atlassian_test].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_bamboo_prod].[master].[sys].[servers] a, [CMS_bamboo_prod].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_fisheye_prod].[master].[sys].[servers] a, [CMS_fisheye_prod].[master].[sys].[databases] b
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_confl_mops_prod].[master].[sys].[servers] a, [CMS_confl_mops_prod].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_crowd_prod].[master].[sys].[servers] a, [CMS_crowd_prod].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_jira_mops_prod].[master].[sys].[servers] a, [CMS_jira_mops_prod].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_entjira_prod].[master].[sys].[servers] a, [CMS_entjira_prod].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_rogue1_dev].[master].[sys].[servers] a, [CMS_rogue1_dev].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_rogue1_dev2].[master].[sys].[servers] a, [CMS_rogue1_dev2].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_rogue1_prod].[master].[sys].[servers] a, [CMS_rogue1_prod].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_rogue1_test].[master].[sys].[servers] a, [CMS_rogue1_test].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_rogue1_uat].[master].[sys].[servers] a, [CMS_rogue1_uat].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_sqlmi_prod01].[master].[sys].[servers] a, [CMS_sqlmi_prod01].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_BWWDB001].[master].[sys].[servers] a, [CMS_BWWDB001].[master].[sys].[databases] b
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SLWSQL001].[master].[sys].[servers] a, [CMS_DEN11SLWSQL001].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SLWSQL001\ORIONDB].[master].[sys].[servers] a, [CMS_DEN11SLWSQL001\ORIONDB].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL005].[master].[sys].[servers] a, [CMS_DEN11SQL005].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL006].[master].[sys].[servers] a, [CMS_DEN11SQL006].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL027\DMOPS].[master].[sys].[servers] a, [CMS_DEN11SQL027\DMOPS].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL027\ITAPPS].[master].[sys].[servers] a, [CMS_DEN11SQL027\ITAPPS].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL066-P\PTCP].[master].[sys].[servers] a, [CMS_DEN11SQL066-P\PTCP].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL069-P].[master].[sys].[servers] a, [CMS_DEN11SQL069-P].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_PVWDB001].[master].[sys].[servers] a, [CMS_PVWDB001].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_PVWDB002].[master].[sys].[servers] a, [CMS_PVWDB002].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_PVWDB005].[master].[sys].[servers] a, [CMS_PVWDB005].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_PVWDB006].[master].[sys].[servers] a, [CMS_PVWDB006].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_PVWDB010\PROPRICERPROD].[master].[sys].[servers] a, [CMS_PVWDB010\PROPRICERPROD].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_PVWDB014\P01].[master].[sys].[servers] a, [CMS_PVWDB014\P01].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_PVWDB017\COBRA].[master].[sys].[servers] a, [CMS_PVWDB017\COBRA].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_PVWDB020\P02].[master].[sys].[servers] a, [CMS_PVWDB020\P02].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_PVWDB022].[master].[sys].[servers] a, [CMS_PVWDB022].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_PVWDB023\PROD].[master].[sys].[servers] a, [CMS_PVWDB023\PROD].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_PVWDB024\UTIL2].[master].[sys].[servers] a, [CMS_PVWDB024\UTIL2].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_PVWDB025].[master].[sys].[servers] a, [CMS_PVWDB025].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_PVWDB028].[master].[sys].[servers] a, [CMS_PVWDB028].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_PVWDB029].[master].[sys].[servers] a, [CMS_PVWDB029].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_PVWDB031].[master].[sys].[servers] a, [CMS_PVWDB031].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_PVWDB034].[master].[sys].[servers] a, [CMS_PVWDB034].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_PWWDB001].[master].[sys].[servers] a, [CMS_PWWDB001].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_PWWDB002].[master].[sys].[servers] a, [CMS_PWWDB002].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_PWWDB003].[master].[sys].[servers] a, [CMS_PWWDB003].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_PWWDB004].[master].[sys].[servers] a, [CMS_PWWDB004].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_PZWDB001].[master].[sys].[servers] a, [CMS_PZWDB001].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_PVWDB037].[master].[sys].[servers] a, [CMS_PVWDB037].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL011\UAT].[master].[sys].[servers] a, [CMS_DEN11SQL011\UAT].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL023\DMOPSBI].[master].[sys].[servers] a, [CMS_DEN11SQL023\DMOPSBI].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL026\DMOPSU].[master].[sys].[servers] a, [CMS_DEN11SQL026\DMOPSU].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL026\ITAPPSU].[master].[sys].[servers] a, [CMS_DEN11SQL026\ITAPPSU].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL063-U\PTCU].[master].[sys].[servers] a, [CMS_DEN11SQL063-U\PTCU].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL068-U\UAT].[master].[sys].[servers] a, [CMS_DEN11SQL068-U\UAT].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DVWDB014].[master].[sys].[servers] a, [CMS_DVWDB014].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_UVWDB006].[master].[sys].[servers] a, [CMS_UVWDB006].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11CPSQL001\TEST].[master].[sys].[servers] a, [CMS_DEN11CPSQL001\TEST].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL012\TEST].[master].[sys].[servers] a, [CMS_DEN11SQL012\TEST].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL017\DMOPSBI].[master].[sys].[servers] a, [CMS_DEN11SQL017\DMOPSBI].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL025].[master].[sys].[servers] a, [CMS_DEN11SQL025].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL025\RAW].[master].[sys].[servers] a, [CMS_DEN11SQL025\RAW].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL026\DMOPST].[master].[sys].[servers] a, [CMS_DEN11SQL026\DMOPST].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL026\ITAPPST].[master].[sys].[servers] a, [CMS_DEN11SQL026\ITAPPST].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL029-T].[master].[sys].[servers] a, [CMS_DEN11SQL029-T].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL042-T\U01].[master].[sys].[servers] a, [CMS_DEN11SQL042-T\U01].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL055-T\PTCT].[master].[sys].[servers] a, [CMS_DEN11SQL055-T\PTCT].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_TVWDB009].[master].[sys].[servers] a, [CMS_TVWDB009].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL071-D\TEST].[master].[sys].[servers] a, [CMS_DEN11SQL071-D\TEST].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_TWWDB001].[master].[sys].[servers] a, [CMS_TWWDB001].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_TWWDB002].[master].[sys].[servers] a, [CMS_TWWDB002].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_TWWDB003].[master].[sys].[servers] a, [CMS_TWWDB003].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_TZWDB001].[master].[sys].[servers] a, [CMS_TZWDB001].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11APP081-D].[master].[sys].[servers] a, [CMS_DEN11APP081-D].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL008\COBRAAR].[master].[sys].[servers] a, [CMS_DEN11SQL008\COBRAAR].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL012\DEV].[master].[sys].[servers] a, [CMS_DEN11SQL012\DEV].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL019\PTCD].[master].[sys].[servers] a, [CMS_DEN11SQL019\PTCD].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL020].[master].[sys].[servers] a, [CMS_DEN11SQL020].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL020\RAW].[master].[sys].[servers] a, [CMS_DEN11SQL020\RAW].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL026\DMOPSD].[master].[sys].[servers] a, [CMS_DEN11SQL026\DMOPSD].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL028].[master].[sys].[servers] a, [CMS_DEN11SQL028].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL032].[master].[sys].[servers] a, [CMS_DEN11SQL032].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL041-D\D01].[master].[sys].[servers] a, [CMS_DEN11SQL041-D\D01].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL044-D\D01].[master].[sys].[servers] a, [CMS_DEN11SQL044-D\D01].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL047].[master].[sys].[servers] a, [CMS_DEN11SQL047].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL071-D\DEV].[master].[sys].[servers] a, [CMS_DEN11SQL071-D\DEV].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DVWDB001].[master].[sys].[servers] a, [CMS_DVWDB001].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DVWDB002\D02].[master].[sys].[servers] a, [CMS_DVWDB002\D02].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DVWDB004\D02].[master].[sys].[servers] a, [CMS_DVWDB004\D02].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DVWDB010].[master].[sys].[servers] a, [CMS_DVWDB010].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DVWDB011].[master].[sys].[servers] a, [CMS_DVWDB011].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DVWDB015].[master].[sys].[servers] a, [CMS_DVWDB015].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DWWDB001].[master].[sys].[servers] a, [CMS_DWWDB001].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DWWDB002].[master].[sys].[servers] a, [CMS_DWWDB002].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DWWDB003].[master].[sys].[servers] a, [CMS_DWWDB003].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DWWDB004].[master].[sys].[servers] a, [CMS_DWWDB004].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DWWDB005].[master].[sys].[servers] a, [CMS_DWWDB005].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL038-TR\TRAIN].[master].[sys].[servers] a, [CMS_DEN11SQL038-TR\TRAIN].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_DEN11SQL064-TR\PTCTRAIN].[master].[sys].[servers] a, [CMS_DEN11SQL064-TR\PTCTRAIN].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_RWWDB001].[master].[sys].[servers] a, [CMS_RWWDB001].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_RWWDB002].[master].[sys].[servers] a, [CMS_RWWDB002].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO
+
+SELECT a.name AS 'SERVER_INSTANCE', b.name AS 'DATABASE' 
+FROM  [CMS_RWWDB003].[master].[sys].[servers] a, [CMS_RWWDB003].[master].[sys].[databases] b 
+WHERE a.server_id = 0 AND b.name like '%CTDB%'
+GO

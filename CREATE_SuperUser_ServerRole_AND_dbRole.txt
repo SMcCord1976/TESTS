@@ -1,0 +1,108 @@
+
+/**************************************/
+/**************************************/
+/* CREATE SERVER LEVEL superuser ROLE */
+/**************************************/
+/**************************************/
+
+USE [master]
+GO
+CREATE SERVER ROLE [superuser] AUTHORIZATION [sa];
+GRANT CONNECT ON ENDPOINT::[TSQL Local Machine] TO [superuser];
+GRANT VIEW DEFINITION ON ENDPOINT::[TSQL Local Machine] TO [superuser];
+GRANT CONNECT ON ENDPOINT::[TSQL Named Pipes] TO [superuser];
+GRANT VIEW DEFINITION ON ENDPOINT::[TSQL Named Pipes] TO [superuser];
+GRANT CONNECT ON ENDPOINT::[TSQL Default VIA] TO [superuser];
+GRANT VIEW DEFINITION ON ENDPOINT::[TSQL Default VIA] TO [superuser];
+GRANT CONNECT ON ENDPOINT::[TSQL Default TCP] TO [superuser];
+GRANT VIEW DEFINITION ON ENDPOINT::[TSQL Default TCP] TO [superuser];
+GRANT VIEW DEFINITION ON LOGIN::[sa] TO [superuser];
+GRANT ADMINISTER BULK OPERATIONS TO [superuser];
+GRANT ALTER ANY DATABASE TO [superuser];
+GRANT CONNECT ANY DATABASE TO [superuser];
+GRANT CONNECT SQL TO [superuser];
+GRANT CREATE ANY DATABASE TO [superuser];
+GRANT CREATE DDL EVENT NOTIFICATION TO [superuser];
+GRANT VIEW ANY DATABASE TO [superuser];
+GRANT VIEW ANY DEFINITION TO [superuser];
+GRANT VIEW SERVER STATE TO [superuser];
+GRANT SELECT ALL USER SECURABLES TO [superuser];
+
+
+/*********************************************/
+/*********************************************/
+/* CREATE DATABASE LEVEL db_superuser ROLE   */
+/* CREATE DATABASE LEVEL db_sp_executor ROLE */
+/* USE CURSOR TO ADD TO ALL DATABASES        */
+/*********************************************/
+/*********************************************/
+
+USE [master]
+GO
+
+DECLARE @dbname VARCHAR(50)
+DECLARE @statement NVARCHAR(max)
+
+DECLARE db_cursor CURSOR LOCAL FAST_FORWARD
+FOR
+SELECT name
+FROM master.dbo.sysdatabases
+WHERE name NOT IN 
+(
+		 'master'
+		,'tempdb'
+		,'distribution'
+)
+
+OPEN db_cursor
+
+FETCH NEXT
+FROM db_cursor
+INTO @dbname
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+	SELECT @statement = 'use ' + @dbname + ';' + 
+
+'
+IF DATABASE_PRINCIPAL_ID(''db_sp_executor'') IS NULL CREATE ROLE [db_sp_executor] AUTHORIZATION [dbo];
+GRANT EXECUTE TO [db_sp_executor];
+IF DATABASE_PRINCIPAL_ID(''db_superuser'') IS NULL CREATE ROLE [db_superuser] AUTHORIZATION [dbo];
+GRANT SELECT TO [db_superuser];
+GRANT UPDATE TO [db_superuser];
+GRANT VIEW DEFINITION TO [db_superuser];
+GRANT EXECUTE TO [db_superuser];
+GRANT INSERT TO [db_superuser];
+GRANT DELETE TO [db_superuser];
+GRANT ALTER TO [db_superuser];
+
+'
+
+	EXEC sp_executesql @statement
+
+	FETCH NEXT
+	FROM db_cursor
+	INTO @dbname
+END
+
+CLOSE db_cursor
+
+DEALLOCATE db_cursor
+
+
+/********************************************************************/
+/********************************************************************/
+/* ADD db_superuser ROLE TO msdb TO ENABLE SQL Agent Administration */
+/********************************************************************/
+/********************************************************************/
+
+
+USE [msdb]
+GO
+ALTER ROLE [SQLAgentOperatorRole] ADD MEMBER [db_superuser]
+GO
+USE [msdb]
+GO
+ALTER ROLE [db_ssisadmin] ADD MEMBER [db_superuser]
+GO
+

@@ -1,0 +1,47 @@
+
+/* EXECUTE STORED PROC THAT WILL CREATE THE JOB THAT CONTAINS THE SCRIPTS THAT WILL BE DEPLOYED */ 
+/* Available Release Engineers as of 20240405:  McCord, Grasso */
+
+USE [spc_dba_utilities]
+GO
+EXEC [rd_sql_agent_job_creator_<EMPLOYEEID>-a1] '<USER.NAME>', 'yyyymmdd_v1' --<<-- add version number to account for multiple deployments on the same date
+
+
+/* EXECUTE THE JOB THAT WAS JUST CREATED / DEPLOY THE SCRIPTS */
+
+USE [msdb]
+GO
+EXEC [sp_start_job] 'Code Deployment - <USER.NAME> yyyymmdd_v1' 
+
+
+/* CHECK FOR SUCCESSFUL / FAILED DEPLOYMENT */
+
+SELECT [h].[run_date]
+	,[j].[name] AS [JobName]
+	,CASE 
+		WHEN LEFT([h].[message], 17) = 'Executed as user:'
+			THEN SUBSTRING([h].[message], 19, CHARINDEX('.', [h].[message], 1) - 18)
+		WHEN [h].[message] LIKE '%invoked by%'
+			THEN SUBSTRING([h].[message], CHARINDEX('invoked by ', [h].[message]) + 11, CHARINDEX('.', SUBSTRING([h].[message], CHARINDEX('invoked by ', [h].[message]) + 11, 99)) - 1)
+		ELSE [h].[message]
+		END AS [JobInvokedBy]
+	,[h].[step_name]
+	,CASE 
+		WHEN [h].[run_status] = 0
+			THEN 'Failed'
+		WHEN [h].[run_status] = 1
+			THEN 'Succeeded'
+		WHEN [h].[run_status] = 2
+			THEN 'Failed'
+		WHEN [h].[run_status] = 3
+			THEN 'Canceled'
+		WHEN [h].[run_status] = 4
+			THEN 'In Progress'
+		ELSE CAST([h].[run_status] AS VARCHAR(25))
+		END AS [run_status]
+FROM [msdb].[dbo].[sysjobs] AS [j]
+INNER JOIN [msdb].[dbo].[sysjobhistory] AS [h]
+	ON [j].[job_id] = [h].[job_id]
+WHERE [j].[name] LIKE '%yyyymmdd_v1%' --Show only jobs with a name that contains this search term
+ORDER BY [JobName];
+GO

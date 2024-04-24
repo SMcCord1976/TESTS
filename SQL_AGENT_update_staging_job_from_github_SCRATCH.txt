@@ -1,0 +1,11 @@
+--Change Stuff works
+
+UPDATE sjs
+SET [command] = N'SELECT ''This is yet another new value from SSMS'''
+FROM [msdb].[dbo].[sysjobsteps] [sjs]
+JOIN [msdb].[dbo].[sysjobs] [sj]
+ON [sjs].[job_id] = [sj].[job_id]
+WHERE [sj].[name] LIKE 'Code Staging%117968'
+AND [sjs].[step_name] LIKE '(DDL) - CHANGE STUFF%'
+
+--Need to determine if scripting action to create new step is feasible / supportable

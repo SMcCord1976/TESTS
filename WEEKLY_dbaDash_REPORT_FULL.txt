@@ -1,0 +1,167 @@
+
+
+--weekly on mondays dump sp_dbaDash results into static temp table on each server
+
+
+
+USE [master]
+GO
+EXEC [sp_dbaDash]
+GO
+
+
+
+--END ALL SERVERS SECTION
+
+
+/***********************************************************************************************************/
+/***********************************************************************************************************/
+/***********************************************************************************************************/
+/***********************************************************************************************************/
+/***********************************************************************************************************/
+/***********************************************************************************************************/
+
+
+
+--BEGIN CMS ONLY SECTION 
+
+--weekly on weds agent job with loop to combine results from individual static temp tables into central static temp table
+	--spc_dba_utilities..dba_weekly_dashboard_report_combined
+	--table
+
+
+
+
+--select Details AS ServerInstanceName, * into spc_dba_utilities..dba_weekly_dashboard_report_combined
+--from spc_dba_utilities..nightly_dashboard_report_A
+--where 1=2
+
+
+
+
+
+
+--DROP THE TEMP TABLE BEFORE STARTING
+DROP TABLE #dbaDash1
+
+
+--CREATE THE STATIC COMMAND TABLE IF NOT ALREADY EXISTS
+
+--USE [spc_dba_utilities]
+--GO
+--SET ANSI_NULLS ON
+--GO
+--SET QUOTED_IDENTIFIER ON
+--GO
+--CREATE TABLE [dbo].[dba_dashboard_report_command](
+--	[commandStatement] [varchar](max) NULL
+--) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+--GO
+
+
+--CREATE THE STATIC COMBINED RESULTS TABLE IF NOT ALREADY EXISTS
+
+--SELECT * INTO [spc_dba_utilities].[dbo].[dba_weekly_dashboard_report_combined]
+--FROM [spc_dba_utilities].[dbo].[nightly_dashboard_report_A]
+
+
+
+--TRUNCATE THE STATIC COMMAND TABLE (STATIC BECAUSE IT HOLDS VALUES FROM MULTIPLE UPSTREAM TABLES)
+TRUNCATE TABLE [spc_dba_utilities].[dbo].[dba_dashboard_report_command]
+
+--TRUNCATE THE STATIC COMBINED RESULTS TABLE (STATIC BECAUSE IT GETS POPULATED SERIALLY FROM MULTIPLE UPSTREAM VALUES) 
+TRUNCATE TABLE [spc_dba_utilities].[dbo].[dba_weekly_dashboard_report_combined]
+
+
+--LOOP THROUGH THE CMS TABLE, OBTAIN LINKED SERVER NAME
+--DYNAMICALLY CREATE INSERT STATEMENT FOR EACH LINKED SERVER THAT WAS OBTAINED
+--dbaDash QUERY PLAN FIELD IS XML DATA TYPE, WHICH IS INCOMPATIBLE WITH DISTRIBUTED QUERIES
+DECLARE @server_id CHAR(25)
+
+SET ROWCOUNT 0
+
+SELECT * INTO #dbaDash1 
+	FROM sys.servers
+	WHERE is_linked = 1 --is an LSO
+	AND name LIKE 'CMS_%' --is an LSO created for Central Management
+	--AND name in ('CMS_DEN11SQL006', 'CMS_DEN11SQL069-P', 'CMS_UVWDB006') --FOR TESTING
+
+SET ROWCOUNT 1
+
+SELECT @server_id = server_id FROM #dbaDash1
+
+WHILE @@ROWCOUNT <> 0
+BEGIN
+    SET ROWCOUNT 0
+
+INSERT INTO [spc_dba_utilities].[dbo].[dba_dashboard_report_command]
+SELECT 
+'INSERT INTO [spc_dba_utilities].[dbo].[dba_weekly_dashboard_report_combined]
+([ServerInstanceName],
+[CaptureDate],
+[Priority] ,
+[FindingsGroup] ,
+[Finding] ,
+[DatabaseName] ,
+[URL] ,
+[Details] ,
+[QueryPlanFiltered] ,
+CheckID)
+SELECT
+[ServerInstanceName],
+[CaptureDate],
+[Priority] ,
+[FindingsGroup] ,
+[Finding] ,
+[DatabaseName] ,
+[URL] ,
+[Details] ,
+[QueryPlanFiltered] ,
+CheckID
+FROM [' + name + '].[spc_dba_utilities].[dbo].[nightly_dashboard_report_A]'
+FROM #dbaDash1
+WHERE server_id = @server_id
+DELETE #dbaDash1 WHERE server_id = @server_id
+
+    SET ROWCOUNT 1
+    
+SELECT @server_id = server_id FROM #dbaDash1
+END
+SET ROWCOUNT 0
+
+
+--THIS TABLE SHOULD HAVE MULTIPLE INSERT STATEMENTS
+--select * from [spc_dba_utilities].[dbo].[dba_dashboard_report_command]
+
+
+
+--DROP THE TEMP TABLE BEFORE STARTING
+DROP TABLE IF EXISTS #dbaDashCommandExec
+
+--RECREATE THE TEMP TABLE FOR EACH INVOCATION
+CREATE TABLE #dbaDashCommandExec (Command varchar(max), OrderBy INT IDENTITY(1,1))
+
+--INSERT DYNAMICALLY CREATED STATEMENTS INTO A TABLE THAT WILL ACTUALLY EXECUTE THOSE STATEMENTS
+INSERT INTO #dbaDashCommandExec 
+SELECT * FROM [spc_dba_utilities].[dbo].[dba_dashboard_report_command]
+
+--LOOP THROUGH TABLE, EXECUTE EACH STATEMENT PRESENT
+DECLARE @sqlcmd VARCHAR(MAX);
+
+SET @sqlcmd = (
+SELECT STRING_AGG(Command,';' + CHAR(10)) WITHIN GROUP (ORDER BY [OrderBy]) as cmd
+FROM #dbaDashCommandExec
+)
+
+--PRINT(@sqlcmd); --FOR DEBUGGING
+EXEC(@sqlcmd);
+
+
+
+
+
+--REPORT FROM CENTRAL TABLE
+SELECT * FROM [spc_dba_utilities].[dbo].[dba_weekly_dashboard_report_combined]
+
+
+--SEND DATABASE MAIL TO RECIPIENTS

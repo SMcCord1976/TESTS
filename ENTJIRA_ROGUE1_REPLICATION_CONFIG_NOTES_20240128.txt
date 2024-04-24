@@ -1,0 +1,160 @@
+
+/********************************************************************/
+/*  ENTERPRISE JIRA --> ROGUE1 NIGHTLY SNAPSHOT REPLICATION ROUTINE 
+/*  Created By:  McCord / Grasso
+/*  Date: 20240126 - 20240128
+/********************************************************************/
+
+
+/************************************************************/
+/************************************************************/
+/************************************************************/
+/**** USE EXTREME CAUTION WHEN RUNNING THE DROP COMMANDS ****/
+/************************************************************/
+/************************************************************/
+/************************************************************/
+
+USE [master]
+GO
+--drop the distribution database
+EXEC sp_dropdistributiondb 'distribution' 
+GO
+--remove the server from the distributor role (if exists)
+EXEC sp_dropdistributor;
+GO
+--drop the existing linked server
+EXEC master.dbo.sp_dropserver @server=N'repl_distributor', @droplogins='droplogins'
+GO
+--drop the existing distributor_admin login
+DROP LOGIN [distributor_admin]
+GO
+
+
+/*******************************************************************************************************************/
+/** THESE COMMANDS MUST BE RUN USING A **SQL SERVER AUTHENTICATED ACCOUNT** THAT IS A MEMBER OF THE sysadmin ROLE **/
+/*******************************************************************************************************************/
+
+/****** Install the server as a Distributor.  ******/
+use master
+exec sp_adddistributor @distributor = N'ent-app-atlassian-jira-ssg-prod-sqlmi.b5e9ffa04b3a.database.usgovcloudapi.net'
+, @password = N''
+GO
+exec sp_adddistributiondb @database = N'distribution'
+, @data_folder = N'https://wasdpusgsw1aprsmi296.blob.core.usgovcloudapi.net/managedserver-31d19861-2066-4f54-9093-0ab58eeaf3fc/data'
+, @log_folder = N'https://wasdpusgsw1aprsmi296.blob.core.usgovcloudapi.net/managedserver-31d19861-2066-4f54-9093-0ab58eeaf3fc/data'
+, @log_file_size = 2
+, @min_distretention = 0
+, @max_distretention = 72
+, @history_retention = 48
+, @deletebatchsize_xact = 5000
+, @deletebatchsize_cmd = 2000
+, @security_mode = 1
+GO
+/****Configure the properties for distribution****/
+use [distribution] 
+if (not exists (select * from sysobjects where name = 'UIProperties' and type = 'U ')) 
+	create table UIProperties(id int) 
+if (exists (select * from ::fn_listextendedproperty('SnapshotFolder', 'user', 'dbo', 'table', 'UIProperties', null, null))) 
+	EXEC sp_updateextendedproperty N'SnapshotFolder', N'\\atlassianjirassgprod.file.core.usgovcloudapi.net\replication-snapshots', 'user', dbo, 'table', 'UIProperties' 
+else 
+	EXEC sp_addextendedproperty N'SnapshotFolder', N'\\atlassianjirassgprod.file.core.usgovcloudapi.net\replication-snapshots', 'user', dbo, 'table', 'UIProperties'
+GO
+/****Add the distribution server as an eligble publisher****/
+exec sp_adddistpublisher @publisher = N'ent-app-atlassian-jira-ssg-prod-sqlmi.b5e9ffa04b3a.database.usgovcloudapi.net'
+, @distribution_db = N'distribution'
+, @security_mode = 0
+, @login = N'replication_admin'
+, @password = N''
+, @working_directory = N'\\atlassianjirassgprod.file.core.usgovcloudapi.net\replication-snapshots'
+, @trusted = N'false'
+, @thirdparty_flag = 0
+, @publisher_type = N'MSSQLSERVER'
+, @storage_connection_string = N'AccountName=atlassianjirassgprod;AccountKey=h5ov53HppB8+RFswIQk5CcweBQQ/E2toNoaZc25L0/rvtEbqQoNN7DNImSQaMr88doi+Kgm0QV0T+AStV9+HYw==;EndpointSuffix=core.usgovcloudapi.net;DefaultEndpointsProtocol=https'
+GO
+
+
+/***********************************************************************************************/
+/*** ALL CREDENTIALS STORED IN BEYONDTRUST REPOSITORY 
+/*** sierraspace.com\DBA_Teampasswords/SS REPLICATION 
+/*** ALL CREDS OWNED AND SECURED BY McCORD / GRASSO               
+/*** BEYONDTRUST "DBA_Teampassords" SECURITY GROUP CONTAINS 5 MEMBERS OF DIFFERENT FUNCTIONS:  
+/*** (Al Dass, Scott Hanks, Jacob Hurd, Liz Mercado, Mark Wilson) 
+/***********************************************************************************************/
+
+--NOTE - The "Administrative Link" password referenced within the GUI is the password for the "distributor_admin" login at the SQL Server instance level.
+--When changing the password for this account, always use the sp_changedistributor_password system stored procedure
+
+--USE master;
+--GO
+--DECLARE @password NVARCHAR(50) = ''; 
+--EXEC sp_changedistributor_password @password;
+--GO
+
+/*********************/
+/* replication_admin */
+/*********************/
+
+--This account is used to install and control the SQL Server Replication service on ent-app-atlassian-jira-ssg-prod-sqlmi
+
+/*********************/
+/* distributor_admin */
+/*********************/
+
+--This account controls the SSR distributor which is installed upon ent-app-atlassian-jira-ssg-prod-sqlmi (The Enterprise Jira DB Host) in Azure.
+--**NOTE** This account is also referred to as the Replication "Administrative Link" within some of the SSR configuration GUIs
+
+/********************/
+/*  publisher_admin */
+/********************/
+
+--This account controls the Publisher role within SQL Server Replication on ent-app-atlassian-jira-ssg-prod-sqlmi
+
+
+
+/*****************************/
+/**********IMPORTANT**********/
+/*****************************/
+
+--ONCE REPLICATION IS ENABLED / CONFIGURED, SUBSEQUENT SCHEMA / DDL CHANGES TO OBJECTS MARKED FOR REPLICATION REQUIRES TIGHT COORDINATION WITH DBA STAFF
+--i.e. If "Jira Upgrades" consist of *any* changes to the database layer, those changes must be coordinated with DBA staff.
+
+--https://learn.microsoft.com/en-us/sql/relational-databases/replication/publish/make-schema-changes-on-publication-databases?view=sql-server-ver16
+
+
+
+
+
+
+--PAUSE SNAPSHOT REPLICATION (DISABLE JOB AND DISABLE SCHEDULE)
+USE [msdb]
+GO
+EXEC msdb.dbo.sp_update_job @job_id=N'477ab796-437a-4620-85fb-d98b0eeb597f', 
+		@enabled=0
+GO
+EXEC msdb.dbo.sp_attach_schedule @job_id=N'477ab796-437a-4620-85fb-d98b0eeb597f',@schedule_id=22
+GO
+USE [msdb]
+GO
+EXEC msdb.dbo.sp_update_schedule @schedule_id=22, 
+		@enabled=0
+GO
+
+
+--RESUME SNAPSHOT REPLICATION (RE-ENABLE JOB AND RE-ENABLE SCHEDULE)
+USE [msdb]
+GO
+EXEC msdb.dbo.sp_update_job @job_id=N'477ab796-437a-4620-85fb-d98b0eeb597f', 
+		@enabled=1
+GO
+EXEC msdb.dbo.sp_attach_schedule @job_id=N'477ab796-437a-4620-85fb-d98b0eeb597f',@schedule_id=22
+GO
+USE [msdb]
+GO
+EXEC msdb.dbo.sp_update_schedule @schedule_id=22, 
+		@enabled=1
+GO
+
+
+
+
+
