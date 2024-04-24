@@ -1,0 +1,68 @@
+--https://sqlmitransfernonprodstg.blob.core.usgovcloudapi.net/transfer-data-non-prod
+
+--sp=racwdli&st=2023-06-26T16:06:19Z&se=2024-06-27T00:06:19Z&spr=https&sv=2022-11-02&sr=c&sig=ijYPLF4kv%2FswuE3cIMCfBSqCJqDAeJnprD%2FkM6u%2F9GE%3D
+
+--First obtain container path and SAS token from Azure web portal.
+--IF NOT YET EXISTS, create credential that will be used to perform the database backup
+--IF EXISTS, alter credential that will be used to perform the database backup to use the new token (this is where the token expiration date comes into play)
+
+IF NOT EXISTS (SELECT * FROM sys.credentials WHERE name = 'https://sqlmitransfernonprodstg.blob.core.usgovcloudapi.net/transfer-data-non-prod') 
+CREATE CREDENTIAL [https://sqlmitransfernonprodstg.blob.core.usgovcloudapi.net/transfer-data-non-prod]
+WITH IDENTITY = 'SHARED ACCESS SIGNATURE'
+, SECRET = 'sp=racwdli&st=2023-06-26T16:06:19Z&se=2024-06-27T00:06:19Z&spr=https&sv=2022-11-02&sr=c&sig=ijYPLF4kv%2FswuE3cIMCfBSqCJqDAeJnprD%2FkM6u%2F9GE%3D'
+
+IF EXISTS (SELECT * FROM sys.credentials WHERE name = 'https://sqlmitransfernonprodstg.blob.core.usgovcloudapi.net/transfer-data-non-prod') 
+ALTER CREDENTIAL [https://sqlmitransfernonprodstg.blob.core.usgovcloudapi.net/transfer-data-non-prod]
+WITH IDENTITY = 'SHARED ACCESS SIGNATURE'
+, SECRET = 'sp=racwdli&st=2023-06-26T16:06:19Z&se=2024-06-27T00:06:19Z&spr=https&sv=2022-11-02&sr=c&sig=ijYPLF4kv%2FswuE3cIMCfBSqCJqDAeJnprD%2FkM6u%2F9GE%3D'
+
+
+
+--sp=racwdli&st=2023-06-26T16:00:31Z&se=2024-06-27T00:00:31Z&spr=https&sv=2022-11-02&sr=c&sig=EOP%2FQ7ZYc2oaVrEskQ%2B202EQSW6CfZXROtZQKH1ZGuE%3D
+
+--Check if TDE is present on database being backed up
+
+SELECT name, is_encrypted
+FROM sys.databases
+WHERE is_encrypted = 1 --(TDE is on)
+
+
+--name					is_encrypted
+--spc_dba_utilities		1
+--NEED Storage Account Key Operator Service Role ASSIGNED IN ORDER TO GENERATE SAS TOKENS
+
+
+--Disable TDE property on database being backed up
+USE [master]
+GO
+ALTER DATABASE [spc_dba_utilities]
+SET ENCRYPTION OFF;
+GO
+
+--Ensure TDE property is off
+SELECT DB_Name(database_id) AS [DB_Name]
+, [encryption_state]
+,[encryption_state_desc]
+FROM sys.dm_database_encryption_keys;
+
+
+--DB_Name				encryption_state	encryption_state_desc
+--spc_dba_utilities		1					UNENCRYPTED
+
+
+--Generate a script to drop the database encryption key
+
+SELECT 'USE ' + [name] + ' DROP DATABASE ENCRYPTION KEY;' FROM sys.databases WHERE database_id > 4
+AND name like 'spc_dba_utilities%';
+
+--Drop the DEK using the script generated above
+
+USE spc_dba_utilities DROP DATABASE ENCRYPTION KEY;
+
+
+--Back up the database
+
+
+BACKUP DATABASE [spc_dba_utilities]
+TO URL = 'https://sqlmitransfernonprodstg.blob.core.usgovcloudapi.net/dba-non-prod-scope/spc_dba_utilities.bak' --remember to specify the backup file name
+WITH COPY_ONLY;

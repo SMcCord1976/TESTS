@@ -1,0 +1,56 @@
+
+USE master
+GO
+
+DROP TABLE tblOrphanUsers
+GO 
+--Formatting fixed
+--Case sensitivity fixed
+--syntax cleaned up
+--comments added
+
+CREATE TABLE tblOrphanUsers
+
+(username varchar(100),
+userSID varchar(max),
+dbname varchar(200) default db_name()
+)
+
+/* Generate insert statements for each database */
+
+SELECT 'USE '+ name+ ' INSERT INTO master.dbo.tblOrphanUsers (username,userSID) EXEC sp_change_users_login ''Report'' '
+FROM sys.databases
+WHERE name not in ('master','msdb','model','distribution','tempdb')
+ORDER BY name
+
+
+
+/* Copy and paste output from above and execute to insert orphaned users from each database into temp table*/
+
+USE Thingworx INSERT INTO master.dbo.tblOrphanUsers (username,userSID) EXEC sp_change_users_login 'Report' 
+USE Windchill INSERT INTO master.dbo.tblOrphanUsers (username,userSID) EXEC sp_change_users_login 'Report' 
+USE Windchill_Addin INSERT INTO master.dbo.tblOrphanUsers (username,userSID) EXEC sp_change_users_login 'Report' 
+
+
+/* Generate statements to fix orphaned users */
+
+SELECT 'USE '+dbname+ ' 
+EXEC sp_change_users_login ''update_one'','''+username+''' , '''+username+''' '
+FROM master.dbo.tblOrphanUsers
+
+
+
+/* Copy and paste output from above and execute to repair orphans and map them to their corresponding logins */
+
+
+
+USE Thingworx   EXEC sp_change_users_login 'update_one','svc-SQLDeployProd' , 'svc-SQLDeployProd' 
+USE Thingworx   EXEC sp_change_users_login 'update_one','twadmin' , 'twadmin' 
+
+USE Windchill   EXEC sp_change_users_login 'update_one','svc-Proxy-Prod' , 'svc-Proxy-Prod' 
+USE Windchill   EXEC sp_change_users_login 'update_one','svc-SQLDeployProd' , 'svc-SQLDeployProd' 
+USE Windchill   EXEC sp_change_users_login 'update_one','wtuser' , 'wtuser' 
+
+USE Windchill_Addin   EXEC sp_change_users_login 'update_one','svc-Proxy-Prod' , 'svc-Proxy-Prod' 
+USE Windchill_Addin   EXEC sp_change_users_login 'update_one','svc-SQLDeployProd' , 'svc-SQLDeployProd' 
+USE Windchill_Addin   EXEC sp_change_users_login 'update_one','wtuser' , 'wtuser' 

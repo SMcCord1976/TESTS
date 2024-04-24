@@ -26,12 +26,19 @@ IF NOT EXISTS(SELECT *
               FROM msdb.dbo.sysmail_profileaccount pa 
                 INNER JOIN msdb.dbo.sysmail_profile p ON pa.profile_id = p.profile_id 
                 INNER JOIN msdb.dbo.sysmail_account a ON pa.account_id = a.account_id   
-              WHERE p.name = 'SQLMI' 
+              WHERE p.name = 'SQLServer',
                 AND a.name = 'AUTHENTICATED_DB_MAIL')  
 
 BEGIN 
     EXECUTE msdb.dbo.sysmail_add_profileaccount_sp 
-      @profile_name = 'SQLMI', 
+      @profile_name = 'SQLServer',
       @account_name = 'AUTHENTICATED_DB_MAIL', 
       @sequence_number = 1 ; 
 END  
+
+
+
+EXEC msdb.dbo.sysmail_update_principalprofile_sp
+@principal_name = 'public',
+@profile_name = 'SQLServer',
+@is_default = '1';

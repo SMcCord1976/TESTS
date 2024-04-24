@@ -1,0 +1,19 @@
+
+
+--The actual query
+SELECT state_desc
+    ,permission_name
+    ,'ON'
+    ,class_desc
+    ,SCHEMA_NAME(major_id)
+    ,'TO'
+    ,USER_NAME(grantee_principal_id)
+FROM sys.database_permissions AS PERM
+JOIN sys.database_principals AS Prin
+    ON PERM.major_ID = Prin.principal_id
+        AND class_desc = 'SCHEMA'
+WHERE major_id = SCHEMA_ID('TestSchema')
+    AND grantee_principal_id = user_id('TestUser')
+    --AND    permission_name = 'SELECT'
+GO
+

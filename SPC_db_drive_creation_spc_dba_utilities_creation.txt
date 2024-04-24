@@ -1,0 +1,1259 @@
+select name 'Logical Name', physical_name 'File Location' 
+FROM sys.master_files
+where name like 'spc_dba_utilities%'
+
+
+--select * from sys.master_files
+--USE [master]
+--GO
+
+--IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'spc_dba_utilities')
+--BEGIN
+
+--CREATE DATABASE [spc_dba_utilities]
+-- CONTAINMENT = NONE
+-- ON  PRIMARY 
+--( NAME = N'spc_dba_utilities', FILENAME = N'E:\MSSQL\DATA\spc_dba_utilities.mdf' , SIZE = 8192KB , MAXSIZE = 10GB , FILEGROWTH = 10%)
+-- LOG ON 
+--( NAME = N'spc_dba_utilities_log', FILENAME = N'E:\MSSQL\LOG\spc_dba_utilities_log.ldf' , SIZE = 8192KB , MAXSIZE = 5GB , FILEGROWTH = 10%)
+
+--END;
+
+--GO
+--ALTER DATABASE [spc_dba_utilities] SET COMPATIBILITY_LEVEL = 150
+--GO
+--ALTER DATABASE [spc_dba_utilities] SET ANSI_NULL_DEFAULT OFF 
+--GO
+--ALTER DATABASE [spc_dba_utilities] SET ANSI_NULLS OFF 
+--GO
+--ALTER DATABASE [spc_dba_utilities] SET ANSI_PADDING OFF 
+--GO
+--ALTER DATABASE [spc_dba_utilities] SET ANSI_WARNINGS OFF 
+--GO
+--ALTER DATABASE [spc_dba_utilities] SET ARITHABORT OFF 
+--GO
+--ALTER DATABASE [spc_dba_utilities] SET AUTO_CLOSE OFF 
+--GO
+--ALTER DATABASE [spc_dba_utilities] SET AUTO_SHRINK OFF 
+--GO
+--ALTER DATABASE [spc_dba_utilities] SET AUTO_CREATE_STATISTICS ON(INCREMENTAL = OFF)
+--GO
+--ALTER DATABASE [spc_dba_utilities] SET AUTO_UPDATE_STATISTICS ON 
+--GO
+--ALTER DATABASE [spc_dba_utilities] SET CURSOR_CLOSE_ON_COMMIT OFF 
+--GO
+--ALTER DATABASE [spc_dba_utilities] SET CURSOR_DEFAULT  GLOBAL 
+--GO
+--ALTER DATABASE [spc_dba_utilities] SET CONCAT_NULL_YIELDS_NULL OFF 
+--GO
+--ALTER DATABASE [spc_dba_utilities] SET NUMERIC_ROUNDABORT OFF 
+--GO
+--ALTER DATABASE [spc_dba_utilities] SET QUOTED_IDENTIFIER OFF 
+--GO
+--ALTER DATABASE [spc_dba_utilities] SET RECURSIVE_TRIGGERS OFF 
+--GO
+--ALTER DATABASE [spc_dba_utilities] SET  DISABLE_BROKER 
+--GO
+--ALTER DATABASE [spc_dba_utilities] SET AUTO_UPDATE_STATISTICS_ASYNC OFF 
+--GO
+--ALTER DATABASE [spc_dba_utilities] SET DATE_CORRELATION_OPTIMIZATION OFF 
+--GO
+--ALTER DATABASE [spc_dba_utilities] SET PARAMETERIZATION SIMPLE 
+--GO
+--ALTER DATABASE [spc_dba_utilities] SET READ_COMMITTED_SNAPSHOT OFF 
+--GO
+--ALTER DATABASE [spc_dba_utilities] SET  READ_WRITE 
+--GO
+--ALTER DATABASE [spc_dba_utilities] SET RECOVERY SIMPLE 
+--GO
+--ALTER DATABASE [spc_dba_utilities] SET  MULTI_USER 
+--GO
+--ALTER DATABASE [spc_dba_utilities] SET PAGE_VERIFY CHECKSUM  
+--GO
+--ALTER DATABASE [spc_dba_utilities] SET TARGET_RECOVERY_TIME = 60 SECONDS 
+--GO
+--ALTER DATABASE [spc_dba_utilities] SET DELAYED_DURABILITY = DISABLED 
+--GO
+--USE [spc_dba_utilities]
+--GO
+--ALTER DATABASE SCOPED CONFIGURATION SET LEGACY_CARDINALITY_ESTIMATION = Off;
+--GO
+--ALTER DATABASE SCOPED CONFIGURATION FOR SECONDARY SET LEGACY_CARDINALITY_ESTIMATION = Primary;
+--GO
+--ALTER DATABASE SCOPED CONFIGURATION SET MAXDOP = 0;
+--GO
+--ALTER DATABASE SCOPED CONFIGURATION FOR SECONDARY SET MAXDOP = PRIMARY;
+--GO
+--ALTER DATABASE SCOPED CONFIGURATION SET PARAMETER_SNIFFING = On;
+--GO
+--ALTER DATABASE SCOPED CONFIGURATION FOR SECONDARY SET PARAMETER_SNIFFING = Primary;
+--GO
+--ALTER DATABASE SCOPED CONFIGURATION SET QUERY_OPTIMIZER_HOTFIXES = Off;
+--GO
+--ALTER DATABASE SCOPED CONFIGURATION FOR SECONDARY SET QUERY_OPTIMIZER_HOTFIXES = Primary;
+--GO
+--USE [spc_dba_utilities]
+--GO
+--IF NOT EXISTS (SELECT name FROM sys.filegroups WHERE is_default=1 AND name = N'PRIMARY') ALTER DATABASE [spc_dba_utilities] MODIFY FILEGROUP [PRIMARY] DEFAULT
+--GO
+
+
+
+
+
+USE [spc_dba_utilities]
+GO
+/****** Object:  Table [dbo].[Deployment_Job_Steps_TEMP]    Script Date: 5/9/2023 9:31:29 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Deployment_Job_Steps_TEMP](
+	[job_id] [uniqueidentifier] NOT NULL,
+	[step_id] [int] NOT NULL,
+	[step_name] [sysname] NOT NULL,
+	[subsystem] [nvarchar](40) NOT NULL,
+	[command] [nvarchar](max) NULL,
+	[flags] [int] NOT NULL,
+	[additional_parameters] [nvarchar](max) NULL,
+	[cmdexec_success_code] [int] NOT NULL,
+	[on_success_action] [tinyint] NOT NULL,
+	[on_success_step_id] [int] NOT NULL,
+	[on_fail_action] [tinyint] NOT NULL,
+	[on_fail_step_id] [int] NOT NULL,
+	[server] [sysname] NULL,
+	[database_name] [sysname] NULL,
+	[database_user_name] [sysname] NULL,
+	[retry_attempts] [int] NOT NULL,
+	[retry_interval] [int] NOT NULL,
+	[os_run_priority] [int] NOT NULL,
+	[output_file_name] [nvarchar](200) NULL,
+	[last_run_outcome] [int] NOT NULL,
+	[last_run_duration] [int] NOT NULL,
+	[last_run_retries] [int] NOT NULL,
+	[last_run_date] [int] NOT NULL,
+	[last_run_time] [int] NOT NULL,
+	[proxy_id] [int] NULL,
+	[step_uid] [uniqueidentifier] NULL
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Deployment_Job_TEMP]    Script Date: 5/9/2023 9:31:29 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Deployment_Job_TEMP](
+	[job_id] [uniqueidentifier] NOT NULL,
+	[originating_server_id] [int] NOT NULL,
+	[name] [sysname] NOT NULL,
+	[enabled] [tinyint] NOT NULL,
+	[description] [nvarchar](512) NULL,
+	[start_step_id] [int] NOT NULL,
+	[category_id] [int] NOT NULL,
+	[owner_sid] [varbinary](85) NOT NULL,
+	[notify_level_eventlog] [int] NOT NULL,
+	[notify_level_email] [int] NOT NULL,
+	[notify_level_netsend] [int] NOT NULL,
+	[notify_level_page] [int] NOT NULL,
+	[notify_email_operator_id] [int] NOT NULL,
+	[notify_netsend_operator_id] [int] NOT NULL,
+	[notify_page_operator_id] [int] NOT NULL,
+	[delete_level] [int] NOT NULL,
+	[date_created] [datetime] NOT NULL,
+	[date_modified] [datetime] NOT NULL,
+	[version_number] [int] NOT NULL
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Missing_Indexes_TEMP]    Script Date: 5/9/2023 9:31:29 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Missing_Indexes_TEMP](
+	[Potential_Improvement_Measure] [float] NULL,
+	[Average_User_Impact] [float] NULL,
+	[Table] [nvarchar](4000) NULL,
+	[Equality_Columns] [nvarchar](4000) NULL,
+	[Inequality_Columns] [nvarchar](4000) NULL,
+	[Included_Columns] [nvarchar](4000) NULL,
+	[Create_Index_Statement] [nvarchar](4000) NULL
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Unused_Indexes_TEMP]    Script Date: 5/9/2023 9:31:29 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Unused_Indexes_TEMP](
+	[Database Name] [nvarchar](128) NULL,
+	[Object_Name] [sysname] NOT NULL,
+	[Index_Name] [sysname] NULL,
+	[Reads] [bigint] NULL,
+	[Writes] [bigint] NOT NULL,
+	[rows] [bigint] NULL,
+	[Reads_Per_Writes] [numeric](38, 17) NULL,
+	[Drop_Index_Statement] [nvarchar](790) NULL
+) ON [PRIMARY]
+GO
+/****** Object:  StoredProcedure [dbo].[dba_sp_GetAllDBConfigurations]    Script Date: 5/9/2023 9:31:29 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+
+
+CREATE     PROC [dbo].[dba_sp_GetAllDBConfigurations] 
+AS
+
+BEGIN
+
+
+/*
+
+This script will script the role members for all roles on the database.
+
+This is useful for scripting permissions in a development environment before refreshing
+development with a copy of production.  This will allow us to easily ensure
+development permissions are not lost during a prod to dev restoration. 
+
+
+Author: Steve Kusen
+Modified By:  Steve McCord
+
+Updates:
+2022-10-05 v5.1: SM 
+
+Bug Fix
+1. Removed duplicate insert statement
+
+Update
+1. Created initial lookup table
+2. Direction given to create objects on msdb ("Don't want SQLRepo on all the instances")
+
+Updates:
+2022-09-16 v5.0: SM Updates for record capturing
+1. Modified code to store scripts, server name, instance name, database name, and time stamp
+2. Timestamp to be used to demonstrate state of permissions prior to restore.
+3. Removed Drop Permissions script to prevent unintentional disruptive changes
+4. Log table created on SQLRepo database
+	a.  Need to solve for instances that do not have a SQLRepo or other DBAdministrative database.
+
+
+**NOTE THIS PROC NEEDS TO BE EXECUTED ON THE DATABASE WHOSE PERMISSIONS ARE BEING 'SAVED'**
+
+
+Updates:
+2021-06-10 v4.7: SK updates from various feedback
+1. Using SID from AG update noted in his 2020-07-07 update.  SUSER_SNAME([sid]) used instead of SUSER_SNAME([name])
+2. Fixed TYPE syntax thanks to Fran4mat
+3. Added SQL MI users and groups per suggestion from Dromero22
+2020-07-07 v4.6: AG added database owner and fix database_principals that are named differently to AD (use latest name from AD/Windows, not SQL value)
+2019-06-10 v4.5:
+1. T. Bradley suggested fix for verifying that role permissions and execute rights on new roles included.  
+Line 302 updated to include the type R, as:
+AND [usr].[type] IN ('G', 'S', 'U', 'R') -- S = SQL user, U = Windows user, G = Windows group
+
+2018-06-06 V4.4:
+1. Incorporated bshimonov's suggestion to not create the dbo user since it is unnecessary.
+
+2018-11-06 v4.51: AG added ALTER USER as sp_revokeaccess fails due to a user owning a schema with tables.  Drop fails and requires the SQL user to be remapped
+Added commented script section to allow dropping of all user permissions in restored database  
+2017-07-10 v4.3: 
+I was unable to easily get this into a stored procedure / powershell script, so this update includes the changes/updates noted here:
+1. Incorporated Andrew G's updates from previous feedback (Much delayed to being updated on the main script page).  Thanks Andrew!
+2. danmeskel2002 recommended a fix for the SID issue for "SQL User without login".   
+Changed this line:
+SID = '' + CONVERT(varchar(1000), sid) 
+to
+SID = '' + CONVERT(varchar(1000), sid, 1)
+
+2016-10-31:  AG
+1. Added extended stored procedures and system object permissions for master database in OBJECT LEVEL PERMISSIONS area by removing join to sys.objects and using functions instead
+2. Added EXISTS check to all statements
+3. Added CREATE ROLE before adding principals to roles 
+
+2016-08-25:  AG 1. Remove default database being specified for an AD group user as this option causes a failure on create
+
+2015-08-21:
+1. Modified section 3.1 to load to a temp table and populate different users based on an error in 2005/2008 because of the update made for contained databases.  Thanks to Andrew G for pointing that out.
+2. Altered section 4.1 to include COLLATE DATABASE_DEFAULT in the join statement.  Thanks to Andrew G and PHXHoward for pointing that out.
+
+
+2015-06-30: 
+1. Re-numbered all sections based on additional updates being added inline.
+2. Added sections 8, 8.1; From Eddict, user defined types needed to be added.
+3. Added sections 4, 4.1; From nhaberl, for orphaned users mapping (if logins don't exist, they will not be created by this script).
+4. Updated section 3.1; From nhaberl, updated to include a default schema of dbo. 
+
+
+
+*/
+
+/***************************************************************************//***************************************************************************
+/* Delete existing users in database (so that they can be recreated with different permissions) */
+USE [' + DB_NAME() +']
+DECLARE @UserName nvarchar(256)
+DECLARE csrUser CURSOR FOR
+SELECT [name] FROM sys.database_principals WHERE principal_id > 4 AND is_fixed_role < 1 ORDER BY [name]
+
+OPEN csrUser FETCH NEXT FROM csrUser INTO @UserName WHILE @@FETCH_STATUS <> -1
+BEGIN
+BEGIN TRY
+  EXEC sp_revokedbaccess @UserName
+END TRY
+BEGIN CATCH
+  ROLLBACK
+END CATCH
+FETCH NEXT FROM csrUser INTO @UserName
+END
+
+CLOSE csrUser DEALLOCATE csrUser
+***************************************************************************//***************************************************************************/
+print ''
+
+
+/*Prep statements*/
+IF NOT EXISTS (select * from msdb..sysobjects where name = 'log_DatabaseConfigurations') CREATE TABLE msdb.dbo.log_DatabaseConfigurations
+(stmt varchar(max), result_order decimal(4,1), ServerName [varchar] (50) NULL, InstanceName [varchar] (50) NULL, DatabaseName [varchar] (50) NULL, ConfigType [int] NULL, [TimeStamp] [datetime] NOT NULL)
+IF ((SELECT SUBSTRING(convert(sysname, SERVERPROPERTY('productversion')), 1, charindex('.',convert(sysname, SERVERPROPERTY('productversion')))-1)) > 10)
+EXEC ('
+INSERT INTO msdb.dbo.log_DatabaseConfigurations (stmt, result_order, ServerName, InstanceName, DatabaseName, ConfigType, TimeStamp)
+SELECT 
+CASE WHEN [type] IN (''U'', ''S'', ''G'')
+THEN
+      CASE WHEN rm.authentication_type IN (2, 0) /* 2=contained database user with password, 0 =user without login; create users without logins*/ 
+       THEN (''IF NOT EXISTS (SELECT SUSER_SNAME([sid]) FROM sys.database_principals WHERE SUSER_SNAME([sid]) = '' + SPACE(1) + '''''''' + SUSER_SNAME([sid]) + '''''''' + '') BEGIN CREATE USER '' + SPACE(1) + QUOTENAME(SUSER_SNAME([sid])) + '' WITHOUT LOGIN WITH DEFAULT_SCHEMA = '' + QUOTENAME([default_schema_name]) + SPACE(1) + '', SID = '' + CONVERT(varchar(1000), sid, 1) + SPACE(1) + '' END; '')
+         ELSE 
+   CASE WHEN rm.name = ''dbo'' /* dbo "name" can be different to Windows User */      THEN ''ALTER AUTHORIZATION ON DATABASE::'' + QUOTENAME(DB_NAME()) + '' TO '' + QUOTENAME(SUSER_SNAME([sid])) + '';''
+    ELSE (''IF NOT EXISTS (SELECT SUSER_SNAME([sid]) FROM sys.database_principals WHERE SUSER_SNAME([sid]) = '' + SPACE(1) + '''''''' + SUSER_SNAME([sid]) + '''''''' + '') BEGIN CREATE USER '' + SPACE(1) + QUOTENAME(SUSER_SNAME([sid])) + '' FOR LOGIN '' + QUOTENAME(SUSER_SNAME([sid])) 
+  + CASE 
+     WHEN [type] <>''G'' THEN '' WITH DEFAULT_SCHEMA = '' + QUOTENAME(ISNULL([default_schema_name], ''dbo'')) 
+     ELSE '''' 
+END + SPACE(1) + ''END ELSE ALTER USER '' + SPACE(1) + QUOTENAME(SUSER_SNAME([sid])) + '' WITH LOGIN = '' + QUOTENAME(SUSER_SNAME([sid])) + '';'') 
+           END
+  END
+WHEN [type] IN (''E'', ''X'')
+THEN  
+CASE WHEN rm.authentication_type IN (2, 0) /* 2=contained database user with password, 0 =user without login; create users without logins*/ 
+       THEN (''IF NOT EXISTS (SELECT SUSER_SNAME([sid]) FROM sys.database_principals WHERE SUSER_SNAME([sid]) = '' + SPACE(1) + '''''''' + SUSER_SNAME([sid]) + '''''''' + '') BEGIN CREATE USER '' + SPACE(1) + QUOTENAME(SUSER_SNAME([sid])) + '' WITHOUT LOGIN WITH DEFAULT_SCHEMA = '' + QUOTENAME([default_schema_name]) + SPACE(1) + '', SID = '' + CONVERT(varchar(1000), sid, 1) + SPACE(1) + '' END; '')
+         ELSE 
+   CASE WHEN rm.name = ''dbo'' /* dbo "name" can be different to Windows User */      THEN ''ALTER AUTHORIZATION ON DATABASE::'' + QUOTENAME(DB_NAME()) + '' TO '' + QUOTENAME(SUSER_SNAME([sid])) + '';''
+    ELSE (''IF NOT EXISTS (SELECT SUSER_SNAME([sid]) FROM sys.database_principals WHERE SUSER_SNAME([sid]) = '' + SPACE(1) + '''''''' + SUSER_SNAME([sid]) + '''''''' + '') BEGIN CREATE USER '' + SPACE(1) + QUOTENAME(SUSER_SNAME([sid])) + '' FOR LOGIN '' + QUOTENAME(SUSER_SNAME([sid])) 
+  + CASE 
+     WHEN [type] <>''G'' THEN '' WITH DEFAULT_SCHEMA = '' + QUOTENAME(ISNULL([default_schema_name], ''dbo'')) 
+     ELSE '''' 
+END + SPACE(1) + ''END;'') 
+           END
+  END
+END AS [-- SQL STATEMENTS --],
+         3.1 AS [-- RESULT ORDER HOLDER --],
+		 @@SERVERNAME AS [-- SERVER NAME --],
+		 @@SERVICENAME AS [-- INSTANCE NAME --],
+ 		 DB_NAME() AS [-- DATABASE NAME --],
+		 1 AS [-- CONFIG TYPE --], --ConfigType 1 = Permission, ConfigType 2 = Orphaned Users - lookup table pending
+		 GETDATE() AS [-- TIME STAMP --]
+   FROM   sys.database_principals AS rm
+   WHERE [type] IN (''U'', ''S'', ''G'', ''E'', ''X'') /* windows users, sql users, windows groups, external users, external groups */     AND NAME NOT IN (''guest'')')
+
+ELSE IF ((SELECT SUBSTRING(convert(sysname, SERVERPROPERTY('productversion')), 1, charindex('.',convert(sysname, SERVERPROPERTY('productversion')))-1)) IN (9,10))
+EXEC ('
+INSERT INTO msdb.dbo.log_DatabaseConfigurations (stmt, result_order, ServerName, InstanceName, DatabaseName, ConfigType, TimeStamp)
+      SELECT   (''IF NOT EXISTS (SELECT SUSER_SNAME([sid]) FROM sys.database_principals WHERE [name] = '' + SPACE(1) + '''''''' + [name] + '''''''' + '') BEGIN CREATE USER '' + SPACE(1) + QUOTENAME([name]) + '' FOR LOGIN '' + QUOTENAME(suser_sname([sid])) + CASE WHEN [type] <>''G'' THEN '' WITH DEFAULT_SCHEMA = '' + QUOTENAME(ISNULL([default_schema_name], ''dbo'')) ELSE '''' END + SPACE(1) + ''END ELSE ALTER USER '' + SPACE(1) + QUOTENAME([name]) + '' WITH LOGIN = '' + QUOTENAME(suser_sname([sid])) + '';'')
+ AS [-- SQL STATEMENTS --],
+         3.1 AS [-- RESULT ORDER HOLDER --],
+		 @@SERVERNAME AS [-- SERVER NAME --],
+		 @@SERVICENAME AS [-- INSTANCE NAME --],
+ 		 DB_NAME() AS [-- DATABASE NAME --],
+		 1 AS [-- CONFIG TYPE --], --ConfigType 1 = Permission, ConfigType 2 = Orphaned Users - lookup table pending
+		 GETDATE() AS [-- TIME STAMP --]
+   FROM   sys.database_principals AS rm
+   WHERE [type] IN (''U'', ''S'', ''G'') /* windows users, sql users, windows groups */   AND NAME NOT IN (''guest'',''dbo'')')
+
+
+DECLARE 
+    @sql VARCHAR(2048)
+    ,@sort INT 
+	,@srv VARCHAR(50)
+	,@inst VARCHAR(50)
+	,@db VARCHAR(50)
+	,@cfgtype INT
+	,@time DATETIME
+
+DECLARE tmp CURSOR FOR
+
+
+
+/*********************************************//*********   DB CONTEXT STATEMENT    *********//*********************************************/
+
+SELECT   'SCRIPT FOR ALL PERMISSIONS ON' + SPACE(1) + QUOTENAME(DB_NAME()) + SPACE(1) + 'SAVED TO msdb.dbo.log_DatabaseConfigurations TABLE' AS [-- SQL STATEMENTS --],
+      1.1 AS [-- RESULT ORDER HOLDER --],
+		 @@SERVERNAME AS [-- SERVER NAME --],
+		 @@SERVICENAME AS [-- INSTANCE NAME --],
+ 		 DB_NAME() AS [-- DATABASE NAME --],
+		 1 AS [-- CONFIG TYPE --], --ConfigType 1 = Permission, ConfigType 2 = Orphaned Users - lookup table pending
+		 GETDATE() AS [-- TIME STAMP --]
+
+UNION
+
+SELECT '' AS [-- SQL STATEMENTS --],
+      2 AS [-- RESULT ORDER HOLDER --],
+		 @@SERVERNAME AS [-- SERVER NAME --],
+		 @@SERVICENAME AS [-- INSTANCE NAME --],
+ 		 DB_NAME() AS [-- DATABASE NAME --],
+		 1 AS [-- CONFIG TYPE --], --ConfigType 1 = Permission, ConfigType 2 = Orphaned Users - lookup table pending
+		GETDATE() AS [-- TIME STAMP --]
+
+
+
+--/*********************************************//*********     DB USER CREATION      *********//*********************************************/
+--INSERT INTO msdb.dbo.log_DatabaseConfigurations (stmt, result_order, ServerName, InstanceName, DatabaseName, ConfigType, TimeStamp)
+--   SELECT   
+--      [stmt],
+--         3.1 AS [-- RESULT ORDER HOLDER --],
+--		 @@SERVERNAME AS [-- SERVER NAME --],
+--		 @@SERVICENAME AS [-- INSTANCE NAME --],
+-- 		 DB_NAME() AS [-- DATABASE NAME --],
+--		 1 AS [-- CONFIG TYPE --], --ConfigType 1 = Permission, ConfigType 2 = Orphaned Users - lookup table pending
+--		 GETDATE() AS [-- TIME STAMP --]
+--   FROM  msdb.dbo.log_DatabaseConfigurations
+--   --WHERE [type] IN ('U', 'S', 'G') -- windows users, sql users, windows groups
+--   WHERE [stmt] IS NOT NULL
+
+
+
+/*********************************************//*********    DB SCHEMA CREATION    *********//*********************************************/
+
+
+INSERT INTO msdb.dbo.log_DatabaseConfigurations (stmt, result_order, ServerName, InstanceName, DatabaseName, ConfigType, TimeStamp)
+SELECT   'IF SCHEMA_ID(' + QUOTENAME([name],'''') COLLATE database_default + ') IS NULL' + SPACE(1) + 'EXEC (' + '''' + 'CREATE SCHEMA'
+   + SPACE(1) + QUOTENAME([name]) +
+   '''' + ')',
+      3.51 AS [-- RESULT ORDER HOLDER --],
+		 @@SERVERNAME AS [-- SERVER NAME --],
+		 @@SERVICENAME AS [-- INSTANCE NAME --],
+ 		 DB_NAME() AS [-- DATABASE NAME --],
+		 1 AS [-- CONFIG TYPE --], --ConfigType 1 = Permission, ConfigType 2 = Orphaned Users - lookup table pending
+		 GETDATE() AS [-- TIME STAMP --]
+FROM sys.schemas
+WHERE [name] not in (
+/*exclude built-in schemas*/'dbo',
+'guest',
+'INFORMATION_SCHEMA',
+'sys',
+'Logging',
+'db_owner',
+'db_accessadmin',
+'db_securityadmin',
+'db_ddladmin',
+'db_backupoperator',
+'db_datareader',
+'db_datawriter',
+'db_denydatareader',
+'db_denydatawriter'
+)
+--ORDER BY [name] ASC
+
+
+
+
+/*********************************************//*********    MAP ORPHANED USERS     *********//*********************************************/
+
+
+INSERT INTO msdb.dbo.log_DatabaseConfigurations (stmt, result_order, ServerName, InstanceName, DatabaseName, ConfigType, TimeStamp)
+SELECT   'ALTER USER [' + rm.name + '] WITH LOGIN = [' + rm.name + ']',
+      4.1 AS [-- RESULT ORDER HOLDER --],
+		 @@SERVERNAME AS [-- SERVER NAME --],
+		 @@SERVICENAME AS [-- INSTANCE NAME --],
+ 		 DB_NAME() AS [-- DATABASE NAME --],
+		 1 AS [-- CONFIG TYPE --], --ConfigType 1 = Permission, ConfigType 2 = Orphaned Users - lookup table pending
+		 GETDATE() AS [-- TIME STAMP --]
+FROM   sys.database_principals AS rm
+ Inner JOIN sys.server_principals as sp
+ ON rm.name = sp.name COLLATE DATABASE_DEFAULT and rm.sid <> sp.sid
+WHERE rm.[type] IN ('U', 'S', 'G', 'E', 'X') -- windows users, sql users, windows groups, external users, external groups
+ AND rm.name NOT IN ('dbo', 'guest', 'INFORMATION_SCHEMA', 'sys', 'MS_DataCollectorInternalUser')
+
+
+
+/*********************************************//*********    DB ROLE PERMISSIONS    *********//*********************************************/
+
+
+INSERT INTO msdb.dbo.log_DatabaseConfigurations (stmt, result_order, ServerName, InstanceName, DatabaseName, ConfigType, TimeStamp)
+SELECT   'IF DATABASE_PRINCIPAL_ID(' + QUOTENAME([name],'''') COLLATE database_default + ') IS NULL' + SPACE(1) + 'CREATE ROLE'
+   + SPACE(1) + QUOTENAME([name]),
+      5.1 AS [-- RESULT ORDER HOLDER --],
+		 @@SERVERNAME AS [-- SERVER NAME --],
+		 @@SERVICENAME AS [-- INSTANCE NAME --],
+ 		 DB_NAME() AS [-- DATABASE NAME --],
+		 1 AS [-- CONFIG TYPE --], --ConfigType 1 = Permission, ConfigType 2 = Orphaned Users - lookup table pending
+		 GETDATE() AS [-- TIME STAMP --]
+FROM sys.database_principals
+WHERE [type] ='R' -- R = Role
+   AND [is_fixed_role] = 0
+AND [name] NOT IN ('public','dbo','guest','INFORMATION SCHEMA','sys')
+--ORDER BY [name] ASC
+--UNION
+
+INSERT INTO msdb.dbo.log_DatabaseConfigurations (stmt, result_order, ServerName, InstanceName, DatabaseName, ConfigType, TimeStamp)
+SELECT   'IF DATABASE_PRINCIPAL_ID(' + QUOTENAME(USER_NAME(rm.member_principal_id),'''') COLLATE database_default + ') IS NOT NULL' + SPACE(1) + 'EXEC sp_addrolemember @rolename ='
+   + SPACE(1) + QUOTENAME(USER_NAME(rm.role_principal_id), '''') COLLATE database_default + ', @membername =' + SPACE(1) + QUOTENAME(USER_NAME(rm.member_principal_id), '''') COLLATE database_default AS [-- SQL STATEMENTS --],
+      5.2 AS [-- RESULT ORDER HOLDER --],
+		 @@SERVERNAME AS [-- SERVER NAME --],
+		 @@SERVICENAME AS [-- INSTANCE NAME --],
+ 		 DB_NAME() AS [-- DATABASE NAME --],
+		 1 AS [-- CONFIG TYPE --], --ConfigType 1 = Permission, ConfigType 2 = Orphaned Users - lookup table pending
+		 GETDATE() AS [-- TIME STAMP --]
+FROM   sys.database_role_members AS rm
+WHERE   USER_NAME(rm.member_principal_id) IN (   
+                                    --get user names on the database
+                                    SELECT [name]
+                                    FROM sys.database_principals
+                                    WHERE [principal_id] > 4 -- 0 to 4 are system users/schemas
+                                    and [type] IN ('G', 'S', 'U', 'E', 'X') -- S = SQL user, U = Windows user, G = Windows group, E = external user, X = external group
+                                   )
+--ORDER BY rm.role_principal_id ASC
+
+
+
+
+
+
+/*********************************************//*********  OBJECT LEVEL PERMISSIONS *********//*********************************************/
+
+INSERT INTO msdb.dbo.log_DatabaseConfigurations (stmt, result_order, ServerName, InstanceName, DatabaseName, ConfigType, TimeStamp)
+SELECT   'IF DATABASE_PRINCIPAL_ID(' + QUOTENAME(USER_NAME(usr.principal_id),'''') COLLATE database_default + ') IS NOT NULL' + SPACE(1) +
+      CASE 
+         WHEN perm.state <> 'W' THEN perm.state_desc 
+         ELSE 'GRANT'
+      END
+      + SPACE(1) + perm.permission_name + SPACE(1) + 'ON ' + QUOTENAME(OBJECT_SCHEMA_NAME(perm.major_id)) + '.' + QUOTENAME(OBJECT_NAME(perm.major_id)) --select, execute, etc on specific objects
+      + CASE
+            WHEN cl.column_id IS NULL THEN SPACE(0)
+            ELSE '(' + QUOTENAME(cl.name) + ')'
+        END
+      + SPACE(1) + 'TO' + SPACE(1) + QUOTENAME(USER_NAME(usr.principal_id)) COLLATE database_default
+      + CASE 
+            WHEN perm.state <> 'W' THEN SPACE(0)
+            ELSE SPACE(1) + 'WITH GRANT OPTION'
+        END
+         AS [-- SQL STATEMENTS --],
+      7.2 AS [-- RESULT ORDER HOLDER --],
+		 @@SERVERNAME AS [-- SERVER NAME --],
+		 @@SERVICENAME AS [-- INSTANCE NAME --],
+ 		 DB_NAME() AS [-- DATABASE NAME --],
+		 1 AS [-- CONFIG TYPE --], --ConfigType 1 = Permission, ConfigType 2 = Orphaned Users - lookup table pending
+		 GETDATE() AS [-- TIME STAMP --]
+FROM   
+   sys.database_permissions AS perm
+
+   /* No join to sys.objects as it excludes system objects such as extended stored procedures */   /*   INNER JOIN
+   sys.objects AS obj
+         ON perm.major_id = obj.[object_id]
+   */      INNER JOIN
+   sys.database_principals AS usr
+         ON perm.grantee_principal_id = usr.principal_id
+      LEFT JOIN
+   sys.columns AS cl
+         ON cl.column_id = perm.minor_id AND cl.[object_id] = perm.major_id
+  WHERE /* Include System objects when scripting permissions for master, exclude elsewhere */      (    DB_NAME() <> 'master' AND perm.major_id IN (SELECT [object_id] FROM sys.objects WHERE type NOT IN ('S'))
+        OR DB_NAME() =  'master'
+        ) 
+                      
+      
+         
+--WHERE   usr.name = @OldUser
+--ORDER BY perm.permission_name ASC, perm.state_desc ASC
+
+
+
+
+/*********************************************//*********  TYPE LEVEL PERMISSIONS *********//*********************************************/
+
+
+INSERT INTO msdb.dbo.log_DatabaseConfigurations (stmt, result_order, ServerName, InstanceName, DatabaseName, ConfigType, TimeStamp)
+SELECT  'IF DATABASE_PRINCIPAL_ID(' + QUOTENAME(USER_NAME(usr.principal_id),'''') COLLATE database_default + ') IS NOT NULL' + SPACE(1) +
+      CASE 
+            WHEN perm.state <> 'W' THEN perm.state_desc 
+            ELSE 'GRANT'
+        END
+        + SPACE(1) + perm.permission_name + SPACE(1) + 'ON TYPE::' + QUOTENAME(SCHEMA_NAME(tp.schema_id)) + '.' + QUOTENAME(tp.name) --select, execute, etc on specific objects
+        + SPACE(1) + 'TO' + SPACE(1) + QUOTENAME(USER_NAME(usr.principal_id)) COLLATE database_default
+        + CASE 
+                WHEN perm.state <> 'W' THEN SPACE(0)
+                ELSE SPACE(1) + 'WITH GRANT OPTION'
+          END
+            AS [-- SQL STATEMENTS --],
+        8.1 AS [-- RESULT ORDER HOLDER --],
+		 @@SERVERNAME AS [-- SERVER NAME --],
+		 @@SERVICENAME AS [-- INSTANCE NAME --],
+ 		 DB_NAME() AS [-- DATABASE NAME --],
+		 1 AS [-- CONFIG TYPE --], --ConfigType 1 = Permission, ConfigType 2 = Orphaned Users - lookup table pending
+		 GETDATE() AS [-- TIME STAMP --]
+
+FROM    
+    sys.database_permissions AS perm
+        INNER JOIN
+    sys.types AS tp
+            ON perm.major_id = tp.user_type_id
+        INNER JOIN
+    sys.database_principals AS usr
+            ON perm.grantee_principal_id = usr.principal_id
+
+
+
+
+
+/*********************************************//*********    DB LEVEL PERMISSIONS   *********//*********************************************/
+
+
+INSERT INTO msdb.dbo.log_DatabaseConfigurations (stmt, result_order, ServerName, InstanceName, DatabaseName, ConfigType, TimeStamp)
+SELECT   'IF DATABASE_PRINCIPAL_ID(' + QUOTENAME(USER_NAME(usr.principal_id),'''') COLLATE database_default + ') IS NOT NULL' + SPACE(1) +
+      CASE 
+         WHEN perm.state <> 'W' THEN perm.state_desc --W=Grant With Grant Option
+         ELSE 'GRANT'
+      END
+   + SPACE(1) + perm.permission_name --CONNECT, etc
+   + SPACE(1) + 'TO' + SPACE(1) + '[' + USER_NAME(usr.principal_id) + ']' COLLATE database_default --TO <user name>
+   + CASE 
+         WHEN perm.state <> 'W' THEN SPACE(0) 
+         ELSE SPACE(1) + 'WITH GRANT OPTION' 
+     END
+      AS [-- SQL STATEMENTS --],
+      10.1 AS [-- RESULT ORDER HOLDER --],
+		 @@SERVERNAME AS [-- SERVER NAME --],
+		 @@SERVICENAME AS [-- INSTANCE NAME --],
+ 		 DB_NAME() AS [-- DATABASE NAME --],
+		 1 AS [-- CONFIG TYPE --], --ConfigType 1 = Permission, ConfigType 2 = Orphaned Users - lookup table pending
+		 GETDATE() AS [-- TIME STAMP --]
+FROM   sys.database_permissions AS perm
+   INNER JOIN
+   sys.database_principals AS usr
+   ON perm.grantee_principal_id = usr.principal_id
+--WHERE   usr.name = @OldUser
+
+WHERE   [perm].[major_id] = 0
+   AND [usr].[principal_id] > 4 -- 0 to 4 are system users/schemas
+   AND [usr].[type] IN ('G', 'S', 'U', 'R', 'E', 'X') -- S = SQL user, U = Windows user, G = Windows group, E = external user, X = external group
+
+
+/*****************************************//************     SCHEMA LEVEL PERMISSIONS     ***********//************************************/
+
+INSERT INTO msdb.dbo.log_DatabaseConfigurations (stmt, result_order, ServerName, InstanceName, DatabaseName, ConfigType, TimeStamp)
+SELECT   'IF DATABASE_PRINCIPAL_ID(' + QUOTENAME(USER_NAME(grantee_principal_id),'''') COLLATE database_default + ') IS NOT NULL' + SPACE(1) +
+         CASE
+         WHEN perm.state <> 'W' THEN perm.state_desc --W=Grant With Grant Option
+         ELSE 'GRANT'
+         END
+            + SPACE(1) + perm.permission_name --CONNECT, etc
+            + SPACE(1) + 'ON' + SPACE(1) + class_desc + '::' COLLATE database_default --TO <user name>
+            + QUOTENAME(SCHEMA_NAME(major_id))
+            + SPACE(1) + 'TO' + SPACE(1) + QUOTENAME(USER_NAME(grantee_principal_id)) COLLATE database_default
+            + CASE
+               WHEN perm.state <> 'W' THEN SPACE(0)
+               ELSE SPACE(1) + 'WITH GRANT OPTION'
+               END
+         AS [-- SQL STATEMENTS --],
+      12.1 AS [-- RESULT ORDER HOLDER --],
+		 @@SERVERNAME AS [-- SERVER NAME --],
+		 @@SERVICENAME AS [-- INSTANCE NAME --],
+ 		 DB_NAME() AS [-- DATABASE NAME --],
+		 1 AS [-- CONFIG TYPE --], --ConfigType 1 = Permission, ConfigType 2 = Orphaned Users - lookup table pending
+		 GETDATE() AS [-- TIME STAMP --]
+from sys.database_permissions AS perm
+   inner join sys.schemas s
+      on perm.major_id = s.schema_id
+   inner join sys.database_principals dbprin
+      on perm.grantee_principal_id = dbprin.principal_id
+WHERE class = 3 --class 3 = schema
+
+ORDER BY [-- RESULT ORDER HOLDER --]
+
+
+OPEN tmp
+FETCH NEXT FROM tmp INTO @sql, @sort, @srv, @inst, @db, @cfgtype, @time
+WHILE @@FETCH_STATUS = 0
+BEGIN
+        PRINT @sql
+        FETCH NEXT FROM tmp INTO @sql, @sort, @srv, @inst, @db, @cfgtype, @time    
+END
+
+CLOSE tmp
+DEALLOCATE tmp 
+
+
+
+DELETE FROM msdb.dbo.log_DatabaseConfigurations
+WHERE stmt IS NULL
+
+
+END
+
+
+
+GO
+/****** Object:  StoredProcedure [dbo].[dba_sp_missing_indexes]    Script Date: 5/9/2023 9:31:29 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+CREATE PROCEDURE [dbo].[dba_sp_missing_indexes]
+AS
+
+BEGIN 
+
+
+
+
+/*===================================================================================*/
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+/*#*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##**/
+/**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#*/
+/*#*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##**/
+/**************************************************************************************
+
+This should be step TWO of the Tuning Lifecycle.  
+
+The first step should be identifying unused indexes within the database, and taking action where necessary to address those indexes.
+
+The third step in the Tuning Lifecycle is to observe the performance of the added/subtracted indexes, re-run these reports and act accordingly.
+
+
+**************************************************************************************/
+/*===================================================================================*/
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+/*#*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##**/
+/**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#*/
+/*#*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##**/
+/************************************************************************************** 
+
+The output of this query is SQL Server essentially looking at the statistics of all the queries run since the last server reboot, and SUGGESTING, 
+"If there was an index here, I might perform a lot better".  
+
+Bear in mind that none of our servers are regularly rebooted, and there is no other way to clear out the cached statistics that are being referenced
+
+Understand that each index is another contributor to potential overhead, because SQL Server must maintain each of those indexes internally
+
+Another example would be if there is an index that covers 3 columns on the table, each single update statement to a field contained within the index 
+is going to require 3 times the disk I/O
+
+Utilize the results generated from this process as an indication of where to start dedicating research/development efforts, 
+*NOT* as a hard and fast directive to add the indexes suggested without further research
+
+Column descriptions:
+
+	Potential_Improvement_Measure - A general statistic illustrating the calculated improvement measure potentially gained by adding the suggested index.  
+							  Considerations include but aren't limited to; disk I/O, physical/virtual memory, network throughput, etc
+							  The higher the number, the greater the potential impact.
+
+	Average_User_Impact - The average percent benefit that a user query could experience if the suggested index was added. 
+					  The query cost would on average drop by the percentage returned in this column.
+				  
+	Table - the fully qualified name of the table (database.schema.table) the suggested index should be implemented on
+
+	Equality_Columns - the columns in a table that are searched upon frequently using an "equality predicate" (i.e. an equal sign (=))
+
+	Inequality_Columns - the columns in a table that are searched upon frequently using 
+					 an "inequality predicate" (i.e. greater than/less than signs (<, >))
+				 
+	Included_Columns - List of columns suggested to be added as "included columns" to the index.  
+				    A potential performance gain is achieved because the query optimizer can locate all the column values within the index.
+
+	Create_Index_Statement - After a determination has been made about whether or not to implement the suggested indexes (and included columns), 
+					   the value in this column can be copied and pasted to a query editor window and executed to actually create the suggested index
+
+**************************************************************************************/
+/*#*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##**/
+/**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#*/
+/*#*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##**/
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+/*===================================================================================*/
+
+
+--Clean up temp tables from last invocation
+IF EXISTS (SELECT * FROM spc_dba_utilities.sys.objects WHERE object_id = OBJECT_ID(N'[spc_dba_utilities].[dbo].[Missing_Indexes_TEMP]') AND type in (N'U'))
+BEGIN
+DROP TABLE spc_dba_utilities..Missing_Indexes_TEMP
+END
+
+SELECT [Potential_Improvement_Measure] = ROUND((avg_total_user_cost * avg_user_impact) * (user_seeks + user_scans),0)
+	,avg_user_impact as 'Average_User_Impact'
+	,[statement] as 'Table'
+	,mid.equality_columns as 'Equality_Columns'
+	,mid.inequality_columns as 'Inequality_Columns'
+	,mid.included_columns as 'Included_Columns' --Need to determine what the value being returned by this metric actually means
+	,[Create_Index_Statement] = 'CREATE NONCLUSTERED INDEX ix_' + sys.objects.NAME 
+	COLLATE DATABASE_DEFAULT + '_' + REPLACE(REPLACE(REPLACE(ISNULL(mid.equality_columns, '') + ISNULL(mid.inequality_columns, ''), '[', ''), ']', ''), ', ', '_') + ' ON ' + [statement] + ' ( ' + IsNull(mid.equality_columns, '') 
+
+	+ CASE 
+		WHEN mid.inequality_columns IS NULL
+			THEN ''
+		ELSE CASE 
+				WHEN mid.equality_columns IS NULL
+					THEN ''
+				ELSE ','
+				END + mid.inequality_columns
+		END + ' ) ' + CASE 
+		WHEN mid.included_columns IS NULL
+			THEN ''
+		ELSE 'INCLUDE (' + mid.included_columns + ')'
+		END + ';'
+INTO spc_dba_utilities..Missing_Indexes_TEMP
+FROM sys.dm_db_missing_index_group_stats AS migs
+INNER JOIN sys.dm_db_missing_index_groups AS mig
+	ON migs.group_handle = mig.index_group_handle
+INNER JOIN sys.dm_db_missing_index_details AS mid
+	ON mig.index_handle = mid.index_handle
+INNER JOIN sys.objects WITH (NOLOCK)
+	ON mid.OBJECT_ID = sys.objects.OBJECT_ID
+WHERE (
+		migs.group_handle IN (
+			SELECT TOP (500) group_handle
+			FROM sys.dm_db_missing_index_group_stats WITH (NOLOCK)
+			ORDER BY (avg_total_user_cost * avg_user_impact) * (user_seeks + user_scans) DESC
+			)
+		)
+	AND OBJECTPROPERTY(sys.objects.OBJECT_ID, 'isusertable') = 1
+ORDER BY [Potential_Improvement_Measure] DESC
+	,[Create_Index_Statement] DESC
+	
+	
+	
+END
+
+	
+
+
+
+
+--EXEC [dba_sp_missing_indexes]
+
+
+--select * from spc_dba_utilities..Missing_Indexes_TEMP
+
+
+
+
+
+GO
+/****** Object:  StoredProcedure [dbo].[dba_sp_running_job_check]    Script Date: 5/9/2023 9:31:29 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE PROCEDURE [dbo].[dba_sp_running_job_check]
+AS
+
+BEGIN
+
+IF EXISTS (
+		SELECT *
+		FROM tempdb.dbo.sysobjects
+		WHERE id = OBJECT_ID(N'[tempdb].[dbo].[Temp1]')
+		)
+	DROP TABLE [tempdb].[dbo].[Temp1]
+
+
+CREATE TABLE [tempdb].[dbo].[Temp1] (
+	job_id UNIQUEIDENTIFIER NOT NULL
+	,last_run_date NVARCHAR(20) NOT NULL
+	,last_run_time NVARCHAR(20) NOT NULL
+	,next_run_date NVARCHAR(20) NOT NULL
+	,next_run_time NVARCHAR(20) NOT NULL
+	,next_run_schedule_id INT NOT NULL
+	,requested_to_run INT NOT NULL
+	,request_source INT NOT NULL
+	,request_source_id SYSNAME COLLATE database_default NULL
+	,running INT NOT NULL
+	,current_step INT NOT NULL
+	,current_retry_attempt INT NOT NULL
+	,job_state INT NOT NULL
+	)
+
+DECLARE @job_owner SYSNAME
+DECLARE @is_sysadmin INT
+
+SET @is_sysadmin = isnull(is_srvrolemember('sysadmin'), 0)
+SET @job_owner = suser_sname()
+
+INSERT INTO [tempdb].[dbo].[Temp1]
+--EXECUTE sys.xp_sqlagent_enum_jobs @is_sysadmin, @job_owner
+EXECUTE master.dbo.xp_sqlagent_enum_jobs @is_sysadmin
+	,@job_owner
+
+UPDATE [tempdb].[dbo].[Temp1]
+SET last_run_time = right('000000' + last_run_time, 6)
+	,next_run_time = right('000000' + next_run_time, 6);
+
+-----
+SELECT j.NAME AS JobName
+	,j.enabled AS Enabled
+	,CASE x.running
+		WHEN 1
+			THEN 'Running'
+		ELSE CASE h.run_status
+				WHEN 2
+					THEN 'Inactive'
+				WHEN 4
+					THEN 'Inactive'
+				ELSE 'Completed'
+				END
+		END AS CurrentStatus
+	,coalesce(x.current_step, 0) AS CurrentStepNbr
+	,CASE 
+		WHEN x.last_run_date > 0
+			THEN convert(DATETIME, substring(x.last_run_date, 1, 4) + '-' + substring(x.last_run_date, 5, 2) + '-' + substring(x.last_run_date, 7, 2) + ' ' + substring(x.last_run_time, 1, 2) + ':' + substring(x.last_run_time, 3, 2) + ':' + substring(x.last_run_time, 5, 2) + '.000', 121)
+		ELSE NULL
+		END AS LastRunTime
+	,CASE h.run_status
+		WHEN 0
+			THEN 'Fail'
+		WHEN 1
+			THEN 'Success'
+		WHEN 2
+			THEN 'Retry'
+		WHEN 3
+			THEN 'Cancel'
+		WHEN 4
+			THEN 'In progress'
+		END AS LastRunOutcome
+	,CASE 
+		WHEN h.run_duration > 0
+			THEN (h.run_duration / 1000000) * (3600 * 24) + (h.run_duration / 10000 % 100) * 3600 + (h.run_duration / 100 % 100) * 60 + (h.run_duration % 100)
+		ELSE NULL
+		END AS LastRunDuration
+FROM [tempdb].[dbo].[Temp1] x
+LEFT JOIN msdb.dbo.sysjobs j
+	ON x.job_id = j.job_id
+LEFT JOIN msdb.dbo.syscategories c
+	ON j.category_id = c.category_id
+LEFT JOIN msdb.dbo.sysjobhistory h
+	ON x.job_id = h.job_id
+		AND x.last_run_date = h.run_date
+		AND x.last_run_time = h.run_time
+		AND h.step_id = 0
+WHERE x.running = 1
+
+END
+
+
+GO
+/****** Object:  StoredProcedure [dbo].[dba_sp_unused_indexes]    Script Date: 5/9/2023 9:31:29 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+CREATE PROCEDURE [dbo].[dba_sp_unused_indexes]
+AS
+
+BEGIN 
+
+
+/*===================================================================================*/
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+/*#*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##**/
+/**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#*/
+/*#*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##**/
+/**************************************************************************************
+
+This should be step ONE of the Tuning Lifecycle. 
+
+
+**************************************************************************************/
+/*===================================================================================*/
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+/*#*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##**/
+/**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#*/
+/*#*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##**/
+/************************************************************************************** 
+
+The output of this query is SQL Server essentially looking at the statistics of all the queries run since the last server reboot, and outlining 
+which indexes have a low read vs. write ratio.  Indexes are useful for the retrieval (reading) of data.  
+
+
+Utilize the results generated from this process as an indication of where to start dedicating research/development efforts, 
+*NOT* as a hard and fast directive to remove the indexes as suggested without further research
+
+Column descriptions:
+	
+	Database_Name - The name of the database on which the objects reside
+
+	Object_Name - The object on which the index resides
+
+	Index_Name - The name of the index
+				  
+	Reads - The number of reads generated using the columns contained in the index
+
+	Writes - The number of writes to columns contained in the index 
+	
+	rows - The number of rows in the table
+
+	Reads_Per_Writes - The percentage of reads per writes.  Keep in mind that indexes are extremely useful for data retrieval, 
+				    but are a performance inhibitor to inserts, updates and deletes.  Therefore an index with a LOW number of reads, but a HIGH
+				    number of writes is quite possibly an unnecessary index
+					 
+	Drop_Index_Statement - After a determination has been made about whether or not to remove the suggested indexes, 
+					   the value in this column can be copied and pasted to a query editor window and executed to actually drop 
+					   the suggested index
+
+**************************************************************************************/
+/*#*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##**/
+/**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#**#*/
+/*#*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##*##**/
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+/*===================================================================================*/
+
+
+--Clean up temp tables from last invocation
+IF EXISTS (SELECT * FROM spc_dba_utilities.sys.objects WHERE object_id = OBJECT_ID(N'[spc_dba_utilities].[dbo].[Unused_Indexes_TEMP]') AND type in (N'U'))
+BEGIN
+DROP TABLE spc_dba_utilities..Unused_Indexes_TEMP
+END
+
+
+SELECT 
+	db_name () as 'Database Name'
+	,o.NAME AS 'Object_Name'
+	,i.NAME AS 'Index_Name'
+	--, i.index_id as 'Index_ID'   
+	,user_seeks + user_scans + user_lookups AS 'Reads'
+	,user_updates AS 'Writes'
+	,rows = (
+		SELECT SUM(p.rows)
+		FROM sys.partitions p
+		WHERE p.index_id = s.index_id
+			AND s.object_id = p.object_id
+		)
+	,CASE 
+		WHEN s.user_updates < 1
+			THEN 100
+		ELSE 1.00 * (s.user_seeks + s.user_scans + s.user_lookups) / s.user_updates
+		END AS Reads_Per_Writes
+	,'DROP INDEX ' + QUOTENAME(i.NAME) + ' ON ' + QUOTENAME(c.NAME) + '.' + QUOTENAME(OBJECT_NAME(s.object_id)) AS 'Drop_Index_Statement'
+INTO spc_dba_utilities..Unused_Indexes_TEMP
+FROM sys.dm_db_index_usage_stats s
+INNER JOIN sys.indexes i
+	ON i.index_id = s.index_id
+		AND s.object_id = i.object_id
+INNER JOIN sys.objects o
+	ON s.object_id = o.object_id
+INNER JOIN sys.schemas c
+	ON o.schema_id = c.schema_id
+WHERE OBJECTPROPERTY(s.object_id, 'IsUserTable') = 1
+	AND s.database_id = DB_ID()
+	AND i.type_desc = 'nonclustered'
+	AND i.is_primary_key = 0
+	AND i.is_unique_constraint = 0
+	AND (
+		SELECT SUM(p.rows)
+		FROM sys.partitions p
+		WHERE p.index_id = s.index_id
+			AND s.object_id = p.object_id
+		) > 10000
+ORDER BY Reads
+
+
+END
+
+GO
+/****** Object:  StoredProcedure [dbo].[rd_sql_agent_job_creator_117968-adm]    Script Date: 5/9/2023 9:31:29 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+--EXEC [rd_sql_agent_job_creator_adm_smccord] 'AMG-HQ\smccord', '20180416'
+
+CREATE PROCEDURE [dbo].[rd_sql_agent_job_creator_117968-adm] @StagingJobSubmitter VARCHAR(MAX), @DeploymentJobDate VARCHAR(25)
+AS
+
+BEGIN 
+
+/**************************************************************************************/
+/*					rd_sql_agent_job_creator - V1 - 04/2018                           */
+/* Makes a functional copy of existing Code Staging job                               */
+/*	 Renames / dates job name                                                         */
+/*	 Changes job owner from submitter to release engineer                             */
+/*                                                                                    */
+/* USAGE: Requires 2 parameters.  Submitter account name, yyyymmdd date               */
+/*		EXEC [rd_sql_agent_job_creator_adm_smccord] 'AMG-HQ\smccord', '20180416'  */
+/**************************************************************************************/
+
+/**************************************************************************************/
+/*                  CHANGE LOG                                                        */
+/* 20180723 - McCord                                                                  */
+/* 20190605 - McCord                                                                  */
+/* 20230505 - McCord - modified for use at SPC                                        */
+/* Simplified job names to conform to one standard                                    */
+/* Note that AMG-HQ\adm-jbaptista is no longer a valid release engineer               */
+/* Added AMG-HQ\adm-nbrandon                                                          */
+/* Added SIERRASPACE\117968-adm                                                       */
+/*                                                                                    */
+/**************************************************************************************/
+
+
+--Clean up temp tables from last invocation
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Deployment_Job_Steps_TEMP]') AND type in (N'U'))
+BEGIN
+DROP TABLE spc_dba_utilities..Deployment_Job_Steps_TEMP
+END
+
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Deployment_Job_TEMP]') AND type in (N'U'))
+BEGIN
+DROP TABLE spc_dba_utilities..Deployment_Job_TEMP
+END
+
+--Variables
+DECLARE @StagingJobName VARCHAR(MAX)
+DECLARE @DeploymentJobName VARCHAR(MAX)
+DECLARE @Description VARCHAR(MAX)
+DECLARE @EngineerSID VARBINARY(85)
+
+SET @StagingJobName = 'Code Staging - '
+SET @DeploymentJobName = 'Code Deployment - '
+SET @Description = 'This job has been created as a copy of the Code Staging job with the same name'
+SET @EngineerSID = 0x010500000000000515000000E5B45D8433DBFA030F31E6E9C73F0000 
+
+
+
+/*
+--owner_sid obtained by creating an explicit (non-group) login, 
+--assign job ownership to that login, 
+--view * from sysjobs, 
+--find corresponding owner_sid, 
+--use that owner_sid to generate the creation stored proc, 
+--delete explicit login.
+--0x010500000000000515000000E71CD76E810BE368E669446E694C0200 adm-smccord
+--0x010500000000000515000000E71CD76E810BE368E669446E2E2C0200 adm-nbrandon
+--0x010500000000000515000000E71CD76E810BE368E669446E7D480200 sql_DBA_fnctn
+--0x010500000000000515000000E71CD76E810BE368E669446E59410200 AMGDBA
+
+--0x010500000000000515000000E5B45D8433DBFA030F31E6E9C73F0000 117968-adm
+*/
+
+
+
+
+
+--Create temp table for new job record
+SELECT *
+INTO spc_dba_utilities.dbo.Deployment_Job_TEMP
+FROM msdb.dbo.sysjobs
+WHERE name = @StagingJobName + @StagingJobSubmitter
+--Modify temp table record
+UPDATE spc_dba_utilities.dbo.Deployment_Job_TEMP
+SET name = @DeploymentJobName + @StagingJobSubmitter + ' ' + @DeploymentJobDate
+	,job_id = NEWID()
+	,owner_sid = @EngineerSID
+	,description = @Description
+	,date_created = getdate()
+	,date_modified = getdate()
+	,version_number = 3
+--Insert modified record into system table
+INSERT INTO msdb.dbo.sysjobs
+SELECT *
+FROM spc_dba_utilities.dbo.Deployment_Job_TEMP
+
+
+--Create temp table for new job steps
+SELECT a.*
+INTO spc_dba_utilities..Deployment_Job_Steps_TEMP
+FROM msdb.dbo.sysjobsteps a
+INNER JOIN msdb.dbo.sysjobs b
+	ON a.job_id = b.job_id
+WHERE b.name = @StagingJobName + @StagingJobSubmitter
+--Modify temp table records
+UPDATE spc_dba_utilities..Deployment_Job_Steps_TEMP
+SET job_id = (
+		SELECT job_id
+		FROM msdb.dbo.sysjobs
+		WHERE name = @DeploymentJobName + @StagingJobSubmitter + ' ' + @DeploymentJobDate
+		)
+	,step_uid = NEWID()
+--Insert modified records into system table
+INSERT INTO msdb.dbo.sysjobsteps
+SELECT *
+FROM spc_dba_utilities.dbo.Deployment_Job_Steps_TEMP
+
+--Execute system stored procedure to update the SQL Agent cache
+DECLARE @new_job_id uniqueidentifier
+SET @new_job_id = (select job_id from msdb.dbo.sysjobs where name = @DeploymentJobName + @StagingJobSubmitter + ' ' + @DeploymentJobDate)
+EXEC msdb.dbo.sp_add_jobserver @new_job_id
+
+
+END
+
+GO
+
+
+
+
+--EXEC sp_configure 'show advanced options', 1
+--GO
+--RECONFIGURE 
+--GO
+--EXEC sp_configure 'xp_cmdshell', 1
+--GO
+--RECONFIGURE
+--GO
+
+
+--EXECUTE master.dbo.xp_fixeddrives
+
+--EXECUTE master.dbo.xp_create_subdir 'S:\MSSQL\DATA'
+--GO
+--EXECUTE master.dbo.xp_create_subdir 'S:\MSSQL\DUMP'
+--GO
+--EXECUTE master.dbo.xp_create_subdir 'S:\MSSQL\LOG'
+--GO
+
+--EXECUTE master.dbo.xp_create_subdir 'U:\MSSQL\DATA'
+--GO
+--EXECUTE master.dbo.xp_create_subdir 'U:\MSSQL\DUMP'
+--GO
+--EXECUTE master.dbo.xp_create_subdir 'U:\MSSQL\LOG'
+--GO
+
+--EXECUTE master.dbo.xp_create_subdir 'P:\MSSQL\DATA'
+--GO
+--EXECUTE master.dbo.xp_create_subdir 'P:\MSSQL\DUMP'
+--GO
+--EXECUTE master.dbo.xp_create_subdir 'P:\MSSQL\LOG'
+--GO
+
+--EXECUTE master.dbo.xp_create_subdir 'E:\MSSQL\DATA'
+--GO
+--EXECUTE master.dbo.xp_create_subdir 'E:\MSSQL\DUMP'
+--GO
+--EXECUTE master.dbo.xp_create_subdir 'E:\MSSQL\LOG'
+--GO
+
+
+--EXEC sp_configure 'xp_cmdshell', 0
+--GO
+--RECONFIGURE 
+--GO
+--EXEC sp_configure 'show advanced options', 0
+--GO
+--RECONFIGURE
+--GO
+
+
+
+
+
+
+
+
+
+
+
+
+
+

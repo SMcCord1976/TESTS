@@ -1,0 +1,57 @@
+
+--CREATE TABLE
+IF NOT EXISTS (select name from sysobjects where name = 'DB_MAIL_ATTRIBUTES_TEMP')
+CREATE TABLE spc_dba_utilities.dbo.DB_MAIL_ATTRIBUTES_TEMP
+(
+ [SERVER_NAME] VARCHAR(MAX)
+,[CAPTURE_DATE] datetime
+,[profile_id] INT
+,[profile_name] VARCHAR(MAX)
+,[account_id] INT
+,[account_name] VARCHAR(MAX)
+,[account_description] VARCHAR(MAX)
+,[from_email_address] VARCHAR(MAX)
+,[account_display_name] VARCHAR(MAX)
+,[replyto_address] VARCHAR(MAX)
+,[servertype] VARCHAR(MAX)
+,[servername] VARCHAR(MAX)
+,[port] VARCHAR(MAX)
+,[account_username] VARCHAR(MAX)
+,[use_default_credentials] INT
+,[enable_ssl] INT
+)
+GO
+
+--PURGE RECORDS OLDER THAN 30 DAYS
+DELETE FROM spc_dba_utilities.dbo.DB_MAIL_ATTRIBUTES_TEMP
+WHERE [CAPTURE_DATE] <= getdate() - 30
+GO
+
+--INSERT NEW RECORDS
+INSERT INTO spc_dba_utilities.dbo.DB_MAIL_ATTRIBUTES_TEMP
+SELECT
+	@@SERVERNAME
+	,getdate()
+	,p.profile_id
+	,p.name as profile_name
+	,a.account_id
+	,a.name
+	,a.description
+	,a.email_address
+	,a.display_name
+	,a.replyto_address
+	,s.servertype
+	,s.servername
+	,s.port
+	,s.username
+	,s.use_default_credentials
+	,s.enable_ssl
+FROM 
+ msdb.dbo.sysmail_account a
+,msdb.dbo.sysmail_profile p
+,msdb.dbo.sysmail_profileaccount pc
+,msdb.dbo.sysmail_server s
+WHERE a.account_id = pc.account_id
+and p.profile_id = pc.profile_id
+and a.account_id = s.account_id
+GO
