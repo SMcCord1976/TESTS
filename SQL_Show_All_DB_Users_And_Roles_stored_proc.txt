@@ -1,0 +1,73 @@
+
+
+--USE master
+--GO
+
+-- ================================================ 
+-- Author:      S. McCord      
+-- Create date: 04-30-2019            
+-- Description: Show all users in database and roles to which they belong          
+-- ================================================
+CREATE PROCEDURE dbo.dba_sp_db_users_roles (@dbRole SYSNAME = '%')
+AS
+SELECT 
+    DB_NAME() as DB_Name,
+    User_Type = 
+    CASE mmbrp.[type] 
+    WHEN 'G' THEN 'Windows Group' 
+    WHEN 'S' THEN 'SQL User' 
+    WHEN 'U' THEN 'Windows User' 
+    END,
+    Database_User_Name = mmbrp.[name],
+    Login_Name = ul.[name],
+    DB_Role = rolp.[name]
+FROM 
+    sys.database_role_members mmbr, -- The Role OR members associations table
+    sys.database_principals rolp,     -- The DB Roles names table
+    sys.database_principals mmbrp,    -- The Role members table (database users)
+    sys.server_principals ul          -- The Login accounts table
+WHERE 
+    Upper(mmbrp.[type]) IN ( 'S', 'U', 'G' )
+    -- No need for these system account types
+    AND Upper (mmbrp.[name]) NOT IN ('SYS','INFORMATION_SCHEMA')
+    AND rolp.[principal_id] = mmbr.[role_principal_id]
+    AND mmbrp.[principal_id] = mmbr.[member_principal_id]
+    AND ul.[sid] = mmbrp.[sid]
+    AND rolp.[name] LIKE '%' + @dbRole + '%'
+	GO
+
+
+--Mark the stored proc as a system stored procedure so it can be called from any database
+USE master
+GO
+EXEC sp_ms_marksystemobject 'dba_sp_db_users_roles' 
+GO 
+
+
+
+--loop through all databases 
+drop table #temp
+go
+CREATE TABLE #temp 
+  ( dbname nvarchar(100)
+   ,usertype nvarchar(100)
+   ,username nvarchar(100)
+   ,loginname nvarchar(100)
+   ,dbrole nvarchar(100)
+  )
+
+EXEC sp_MSforeachdb 'USE ? insert into #temp exec dba_sp_db_users_roles' 
+
+SELECT * FROM #temp
+where username not like '%P-SQL-UAT%'
+and username not like 'dbo%'
+
+
+
+
+select name, type_desc, is_disabled
+from master.sys.server_principals
+where is_disabled = 0
+and type_desc not in ('CERTIFICATE_MAPPED_LOGIN', 'SERVER_ROLE')
+and name not like 'NT %'
+
