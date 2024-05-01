@@ -1,0 +1,52 @@
+
+
+--Show all schemas, all perms granted, and all users
+SELECT 
+
+	 USER_NAME(grantee_principal_id) AS 'USER_NAME'
+	,' HAS THE' AS 'HAS THE '
+    ,permission_name
+    ,' PERMISSION ON THE' AS 'PERMISSION ON THE'
+    ,SCHEMA_NAME(major_id) AS 'SCHEMA_NAME'
+    ,class_desc
+	,' IN THE' AS 'IN THE'
+    ,DB_NAME() AS 'DATABASE_NAME'
+	,' DATABASE' AS 'DATABASE'
+	,' ON' AS 'ON'
+	,@@SERVERNAME AS 'SERVER_NAME'
+	,' SERVER INSTANCE' AS 'SERVER INSTANCE'
+	,USER_NAME(grantee_principal_id) + ' HAS THE ' + permission_name + ' PERMISSION ON THE ' + SCHEMA_NAME(major_id) + class_desc + ' IN THE ' + DB_NAME() + ' DATABASE ON SERVER INSTANCE ' + @@SERVERNAME AS 'FRIENDLY_TEXT'
+FROM sys.database_permissions AS PERM
+JOIN sys.database_principals AS Prin
+    ON PERM.major_ID = Prin.principal_id
+        AND class_desc = 'SCHEMA'
+WHERE state_desc = 'GRANT'---- Only Grants, no Denies
+--    AND major_id = SCHEMA_ID('TestSchema') ----Specific schema
+--    AND grantee_principal_id = user_id('TestUser') ----Specific user
+--    AND    permission_name = 'SELECT' ----Specific permission
+ORDER BY DB_NAME(), SCHEMA_NAME(major_id)
+
+
+
+--All databases
+EXEC sp_MSforeachdb 'USE ? SELECT 
+
+	 USER_NAME(grantee_principal_id) AS ''USER_NAME''
+	,'' HAS THE'' AS ''HAS THE ''
+    ,permission_name
+    ,'' PERMISSION ON THE'' AS ''PERMISSION ON THE''
+    ,SCHEMA_NAME(major_id) AS ''SCHEMA_NAME''
+    ,class_desc
+	,'' IN THE'' AS ''IN THE''
+    ,DB_NAME() AS ''DATABASE_NAME''
+	,'' DATABASE'' AS ''DATABASE''
+	,''ON'' AS ''ON''
+	,@@SERVERNAME AS ''SERVER_NAME''
+	,'' SERVER INSTANCE'' AS ''SERVER INSTANCE''
+
+FROM sys.database_permissions AS PERM
+JOIN sys.database_principals AS Prin
+    ON PERM.major_ID = Prin.principal_id
+        AND class_desc = ''SCHEMA''
+WHERE state_desc = ''GRANT'' 
+ORDER BY DB_NAME(), SCHEMA_NAME(major_id)'
