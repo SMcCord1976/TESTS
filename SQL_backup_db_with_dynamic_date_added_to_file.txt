@@ -1,0 +1,13 @@
+DECLARE @FileNameDynamicDate varchar(max)
+
+SELECT @FileNameDynamicDate = (SELECT 'S:\MSSQL\DUMP\spc_dba_utilities_' + convert(varchar(max),getdate(),112) + '.bak') --yyyymmdd format
+
+BACKUP DATABASE [spc_dba_utilities] TO DISK=@FileNameDynamicDate 
+WITH NOFORMAT
+, INIT
+, SKIP
+, NOREWIND
+, NOUNLOAD
+, COMPRESSION
+, STATS=10
+GO
