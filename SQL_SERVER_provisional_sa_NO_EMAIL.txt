@@ -1,0 +1,209 @@
+--CREATE THE LOGIN WITH RANDOM COMPLEX PW
+
+USE [master]
+GO
+
+CREATE LOGIN [provisional_sa] WITH PASSWORD=N'UQK7zKoh6UFStKuF6Btq2G7D+mPx6pywd3qCq6y848M=', 
+DEFAULT_DATABASE=[master], DEFAULT_LANGUAGE=[us_english], CHECK_EXPIRATION=OFF, CHECK_POLICY=OFF
+GO
+
+--DISABLE THE LOGIN
+ALTER LOGIN [provisional_sa] DISABLE
+GO
+--DENY THE ABILITY FOR THE LOGIN TO CONNECT TO SQL
+DENY CONNECT SQL TO [provisional_sa]
+GO
+
+
+
+USE [master]
+GO
+--GRANT MEMBERSHIP TO sysadmin ROLE
+ALTER SERVER ROLE [sysadmin] ADD MEMBER [provisional_sa]
+GO
+--GRANT THE ABILITY FOR THE LOGIN TO CONNECT TO SQL
+GRANT CONNECT SQL TO [provisional_sa]
+GO
+--ENABLE THE LOGIN
+ALTER LOGIN [provisional_sa] ENABLE
+GO
+
+
+--MANUALLY CHANGE THE PASSWORD
+USE [master]
+GO
+ALTER LOGIN [provisional_sa] WITH PASSWORD=N'testtesttest'
+GO
+
+
+ 
+--CREATE THE TABLE THAT HOSTS THE LOGIN INFORMATION
+--TODO: SECURE THIS TABLE
+USE [spc_dba_utilities]
+GO
+
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_PADDING ON
+GO
+
+CREATE TABLE [dbo].[provisional_sa_log](
+	[record_id] [int] IDENTITY(1,1) NOT FOR REPLICATION NOT NULL,
+	[instance_name] [varchar](50) NULL,
+	[user_email] [varchar](50) NULL,
+	[rndm_gen_pw] [varchar](50) NULL,
+	[pw_gen_date] [datetime] NOT NULL
+) ON [PRIMARY]
+
+GO
+SET ANSI_PADDING OFF
+GO
+ALTER TABLE [dbo].[provisional_sa_log] ADD  CONSTRAINT [DF_provisional_sa_log_pw_gen_date]  DEFAULT (getdate()) FOR [pw_gen_date]
+GO
+
+
+--CREATE THE STORED PROCEDURE THAT LOGS REQUEST INFORMATION AND GENERATES THE NEW PASSWORD
+
+--STORED PROCEDURE REQUIRES REQUESTOR (USER) EMAIL ADDRESS AS EXECUTION PARAMETER
+CREATE PROCEDURE [dba_sp_provisional_sa_access] @username NVARCHAR(255)
+AS
+
+BEGIN 
+
+INSERT INTO [provisional_sa_log]
+	([instance_name]
+	,[user_email]
+	,[rndm_gen_pw])
+
+SELECT 
+	@@SERVERNAME
+	,@username
+	, CAST((SELECT TOP 12 SUBSTRING(tblSource.vssource, tblValue.number + 1, 1) 
+        FROM   (SELECT 
+       'abcdefhkmnpqrstuvwxyzABCDEFHKMNPQRSTUVWXYZ23456789+=-_~#$%*()' 
+       AS 
+               vsSource) AS tblSource 
+               JOIN master..spt_values AS tblValue 
+                 ON tblValue.number < LEN(tblSource.vssource) 
+        WHERE  tblValue.type = 'P' 
+        ORDER  BY NEWID()
+        FOR xml path (''))  
+AS VARCHAR(MAX)) AS [rndm_gen_pw];
+
+END
+
+
+--EXECUTE THE STORED PROCEDURE TO CHANGE THE PASSWORD ON BEHALF OF THE REQUESTOR
+EXEC [dba_sp_provisional_sa_access] 'stephen.mccord@sierraspace.com'
+
+
+
+----VERIFY THE NEW PASSWORD VALUE, AND ENSURE THAT THE RECORD WAS CREATED AND STORED IN THE TABLE
+--SELECT [record_id], [pw_gen_date], [instance_name], [user_email], [rndm_gen_pw]
+--FROM [provisional_sa_log] a
+--INNER JOIN 
+--	(SELECT MAX([record_id]) AS [max_record_id] FROM [provisional_sa_log]) b
+--		ON a.[record_id] = b.[max_record_id]
+--GO
+
+
+
+--variables:
+--user
+--access duration
+--password
+
+
+--alter login set pw to random gen pw
+--enable account
+--capture random gen pw
+--email to user (variable)
+--capture and log
+
+
+--after access duration expires
+--alter login set pw to NEW random gen pw
+--disable account
+--email DBA
+--capture and log
+
+
+
+ /* NEED TO SET CONCAT_NULL_YIELDS_NULL OPTION TO OFF*/
+ /* NEED TO ENCLOSE @pwd VARIABLE STRING IN PARENTHESES, NOT QUOTES */
+
+
+ --drop procedure dba_sp_rotate_provisional_sa_password
+ CREATE PROCEDURE dba_sp_rotate_provisional_sa_password
+ AS
+ BEGIN
+
+ SET CONCAT_NULL_YIELDS_NULL OFF
+
+ DECLARE @pwd NVARCHAR(MAX)
+ DECLARE @sql NVARCHAR(MAX)
+
+ 
+ SET @pwd = (SELECT a.[rndm_gen_pw] FROM spc_dba_utilities.dbo.[provisional_sa_log] a 
+ INNER JOIN (SELECT MAX([record_id]) AS [max_record_id] 
+ FROM spc_dba_utilities.dbo.[provisional_sa_log]) b 
+ ON a.[record_id] = b.[max_record_id])
+
+ --SELECT @pwd --DEBUGGING
+ 
+ SET @sql = 'ALTER LOGIN [provisional_sa] WITH PASSWORD=N'+QUOTENAME(@pwd,'''')
+ 
+-- PRINT @sql ----DEBUGGING
+
+ EXEC (@sql) --NEED TO WRAP VARIABLE IN PARENS BECAUSE WITHOUT THEM, SQL ASSUMES VALUE TO BE A STORED PROCEDURE NAME
+
+ --EXEC sys.sp_executesql @sql --ALTERNATIVELY, USE sys.sp_executesql STORED PROCEDURE TO EXECUTE THE VARIABLE OUTPUT 
+
+ END
+
+
+
+ EXEC dba_sp_rotate_provisional_sa_password
+
+
+ --SHOW THE LAST TIME THE PASSWORD WAS CHANGED TO VERIFY THE STORED PROC WORKED.
+
+ SELECT LOGINPROPERTY('provisional_sa', 'PasswordLastSetTime');
+
+
+ --SHOW THE MOST RECENT PASSWORD VALUE.  USE TO LOG INTO INSTANCE TO TEST.
+
+SELECT [record_id], [pw_gen_date], [instance_name], [user_email], [rndm_gen_pw]
+FROM [provisional_sa_log] a
+INNER JOIN 
+	(SELECT MAX([record_id]) AS [max_record_id] FROM [provisional_sa_log]) b
+		ON a.[record_id] = b.[max_record_id]
+GO
+
+
+--TESTED SUCCESSFULLY USING THESE CREDENTIALS:
+
+--ZRAVWyCF~BNw
+
+
+
+--AFTER DURATION EXPIRES, ROTATE PASSWORD, DISABLE ACCOUNT, DENY CONNECT TO SQL.
+
+EXEC [dba_sp_provisional_sa_access] 'AUTO ROTATE'
+EXEC [dba_sp_rotate_provisional_sa_password]
+
+ALTER LOGIN [provisional_sa] DISABLE
+GO
+
+DENY CONNECT SQL TO [provisional_sa]
+GO
+
+
+
+
+
+
+
+
