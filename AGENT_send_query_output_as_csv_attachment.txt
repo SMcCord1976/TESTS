@@ -1,0 +1,18 @@
+
+DECLARE @ResultsQuery NVARCHAR(MAX),
+        @tab char(1) = CHAR(9)
+
+select @ResultsQuery = 'select * from [spc_dba_utilities].[dbo].[dba_all_rowcounts]'
+
+
+EXEC msdb.dbo.sp_send_dbmail
+     @profile_name = 'SQLServer',
+     @recipients = 'stephen.mccord@sierraspace.com',
+     @subject = 'CSV with counts',
+     @body_format = 'HTML',
+     @body = 'Please see attached document.',
+     @query = @ResultsQuery ,
+     @attach_query_result_as_file = 1,
+     @query_attachment_filename = 'testresults.csv',  
+     @query_result_separator = @tab,
+     @query_result_no_padding = 1
