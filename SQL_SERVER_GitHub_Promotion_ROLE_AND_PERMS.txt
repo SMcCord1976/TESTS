@@ -1,0 +1,68 @@
+
+/* CREATE USER */
+USE [spc_dba_utilities]
+GO
+CREATE USER [svc-prod-github-promotion] FOR LOGIN [svc-prod-github-promotion] WITH DEFAULT_SCHEMA=[dbo]
+GO
+USE [spc_dba_utilities]
+GO
+EXEC sys.sp_addextendedproperty @name=N'Description'
+, @value=N'This account is used by the GitHub service to promote approved database changes to production databases' 
+, @level0type=N'USER'
+, @level0name=N'svc-prod-github-promotion'
+GO
+
+/*CREATE CUSTOM ROLE */
+USE [spc_dba_utilities]
+GO
+CREATE ROLE [db_github_promotion]
+GO
+GRANT CREATE TABLE TO [db_github_promotion]
+GO
+GRANT CREATE PROCEDURE TO [db_github_promotion]
+GO
+GRANT CREATE FUNCTION TO [db_github_promotion]
+GO
+GRANT CREATE VIEW TO [db_github_promotion]
+GO
+GRANT CREATE SCHEMA TO [db_github_promotion]
+GO
+GRANT ALTER TO [db_github_promotion]
+GO
+GRANT DELETE TO [db_github_promotion]
+GO
+GRANT INSERT TO [db_github_promotion]
+GO
+GRANT EXECUTE TO [db_github_promotion]
+GO
+GRANT REFERENCES TO [db_github_promotion]
+GO
+GRANT SELECT TO [db_github_promotion]
+GO
+GRANT UPDATE TO [db_github_promotion]
+GO
+GRANT VIEW DEFINITION TO [db_github_promotion]
+GO
+USE [spc_dba_utilities]
+GO
+EXEC sys.sp_addextendedproperty @name=N'Description'
+, @value=N'This custom role grants members the ability to promote database changes from lower SDLC environments to high criticality and high sensitivity SDLC environments' 
+, @level0type=N'USER'
+, @level0name=N'db_github_promotion'
+GO
+
+/* ADD USER TO CUSTOM ROLE */
+ALTER ROLE [db_github_promotion] ADD MEMBER [svc-prod-github-promotion]
+GO
+
+/* ADD USER TO NATIVE ROLE */
+ALTER ROLE [db_accessadmin] ADD MEMBER [svc-prod-github-promotion]
+GO
+
+/* ADD USER TO NATIVE ROLE IN msdb */
+USE [msdb]
+GO
+CREATE USER [svc-prod-github-promotion] FOR LOGIN [svc-prod-github-promotion] WITH DEFAULT_SCHEMA=[dbo]
+GO
+ALTER ROLE [SQLAgentOperatorRole] ADD MEMBER [svc-prod-github-promotion]
+GO
