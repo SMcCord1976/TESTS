@@ -1,0 +1,63 @@
+	#First create the function
+
+function Add-SpcAdUserToSqlOwnerGroups {
+    [CmdletBinding(SupportsShouldProcess, ConfirmImpact='High')]
+    param (
+        # ID of user to add to SQL owner groups
+        [Parameter(Mandatory)]
+        [string]
+        $EmployeeID,
+
+        # Credential with rights to add users to designated groups in AD
+        [Parameter()]
+        [PSCredential]
+        $Credential
+    )
+    
+    begin {
+
+        $SearchBase = 'OU=SQL,OU=Permission Groups,OU=M365_Synced_Groups,DC=sierraspace,DC=com'
+    }
+    
+    process {
+        
+        try {
+
+            $AdUser = Get-AdUser -Filter "EmployeeID -eq '$EmployeeID'"
+
+	# Group naming pattern begins with "P-SQL-R1" and ends with "-owner"
+
+            $GroupList = Get-AdGroup -SearchBase $SearchBase -Filter * | ? Name -like "P-SQL-R1*-owner"
+            
+            foreach ($Group in $GroupList) {
+    
+                if ($PSCmdlet.ShouldProcess("$($Group.Name)", "Adding user $($AdUser.Name)")) {
+
+                    $AddGroupMemberParamList = @{
+                        Identity = $Group.SamAccountName
+                        Members  = $AdUser.SamAccountName
+                    }
+
+                    if ($Credential) {
+                        $AddGroupMemberParamList['Credential'] = $Credential
+                    }
+
+	#-Verbose switch added to display results as they are set
+
+                    Add-ADGroupMember @AddGroupMemberParamList -Verbose
+                }
+            }
+        }
+        catch {
+            
+            "$PSItem"
+        }
+    }
+    
+    end {
+        
+    }
+}
+
+	#TEST execution example:  PS C:\Users\117968-adm> Add-SpcAdUserToSqlOwnerGroups -EmployeeID 118659 -WhatIf
+	#REAL execution example:  PS C:\Users\117968-adm> Add-SpcAdUserToSqlOwnerGroups -EmployeeID 118659
