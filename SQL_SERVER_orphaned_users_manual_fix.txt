@@ -1,0 +1,53 @@
+USE master
+GO
+
+DROP TABLE tblOrphanUsers
+GO 
+--Formatting fixed
+--Case sensitivity fixed
+--syntax cleaned up
+--comments added
+
+CREATE TABLE tblOrphanUsers
+
+(username varchar(100),
+userSID varchar(max),
+dbname varchar(200) default db_name()
+)
+
+/* Generate insert statements for each database */
+
+SELECT 'USE '+ name+ ' INSERT INTO master.dbo.tblOrphanUsers (username,userSID) EXEC sp_change_users_login ''Report'' '
+FROM sys.databases
+WHERE name not in ('master','msdb','model','distribution','tempdb')
+ORDER BY name
+
+
+
+/* Copy and paste output from above and execute to insert orphaned users from each database into temp table*/
+
+USE Rogue1 INSERT INTO master.dbo.tblOrphanUsers (username,userSID) EXEC sp_change_users_login 'Report' 
+
+/* Generate statements to fix orphaned users */
+
+SELECT 'USE '+dbname+ ' 
+EXEC sp_change_users_login ''update_one'','''+username+''' , '''+username+''' '
+FROM master.dbo.tblOrphanUsers
+
+
+--AZURE SQLMI DOESN'T SUPPORT sp_change_users_login 
+--USE ALTER USER COMMAND, JOIN TO syslogins TABLE TO MATCH UP WITH EXISTING LOGINS
+
+SELECT 'USE [' + a.dbname + ']; ALTER USER [' + a.username + '] WITH LOGIN = [' + a.username + '];'
+FROM [master].[dbo].[tblOrphanUsers] a
+INNER JOIN sys.syslogins s 
+ON s.name = a.username 
+
+
+/* Copy and paste output from above and execute to repair orphans and map them to their corresponding logins */
+
+USE Rogue1   ALTER USER [svc-dev-rogue1]   WITH LOGIN = [svc-dev-rogue1]; 
+
+
+
+
