@@ -1,0 +1,13 @@
+#SHOW MEMBERS OF SOURCE GROUP
+
+Get-ADGroupMember -Identity "P-SQL-PRD-RogueOne-default_datareader" | Select-Object Name | Sort-Object Name
+
+
+#COPY MEMBERS OF SOURCE GROUP TO DESTINATION GROUP
+
+Get-ADGroupMember -Identity "P-SQL-PRD-RogueOne-default_datareader" | ForEach-Object {Add-ADGroupMember -Identity "P-SQL-PRD-EDW-default_datareader" -Members $_.distinguishedName}
+
+
+#SHOW MEMBERS OF DESTINATION GROUP TO VERIFY
+
+Get-ADGroupMember -Identity "P-SQL-PRD-EDW-default_datareader" | Select-Object Name | Sort-Object Name
