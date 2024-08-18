@@ -1,0 +1,13 @@
+﻿$stoppedServerNames = "DEN11SQL002"
+$stoppedInstanceNames = "MSSQLSERVER" ##MSSQLSERVER
+
+Start-DbaService -ComputerName $stoppedServerNames -InstanceName $stoppedInstanceNames -Type Engine
+Start-DbaService -ComputerName $stoppedServerNames -InstanceName $stoppedInstanceNames -Type Agent
+Start-DbaService -ComputerName $stoppedServerNames -InstanceName $stoppedInstanceNames -Type Browser
+
+
+#Start-DbaService -ComputerName TVWAP010 -InstanceName MSSQLSERVER -Type Engine
+#Start-DbaService -ComputerName DEN11SQL025 -InstanceName MSSQLSERVER -Type SSAS
+#Start-DbaService -ComputerName DEN11SQL025 -InstanceName MSSQLSERVER -Type SSIS
+#Start-DbaService -ComputerName DEN11SQL025 -InstanceName RAW -Type SSRS
+#Start-DbaService -ComputerName DEN11SQL025 -InstanceName RAW -Type SSAS

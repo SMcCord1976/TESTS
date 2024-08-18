@@ -1,0 +1,146 @@
+﻿﻿$printOnly = 0
+$additionalServiceType = ""
+
+$checkEngine = 1
+$checkSSRS = 1
+$checkSSIS = 1
+$checkSSAS = 1
+$checkBrowser = 1
+$checkAdditionalServiceType = 1
+
+#Evaluate list of servers present within a specific server, SQL instance and CMS folder and start SQL Server Services that are enabled, but stopped for whatever reason
+
+$cmsInstance = "PVWDB003.SIERRASPACE.COM\CMS"
+#$cmsGroup = "2 - UAT", "3 - TEST", "4 - DEV", "5 - ADMIN"
+$cmsGroup = "1 - PROD", "6 - TRAINING"
+
+$allInstances = Get-DbaRegServer -SqlInstance $cmsInstance -Group $cmsGroup | Select-Object -Unique -ExpandProperty ServerName
+
+$allServerNames = $allInstances -replace '\\.*$', ''
+
+
+
+#Engine
+if ($checkEngine -eq 1) {
+$stoppedEngineServerInstanceNames = Get-DbaService -SqlInstance $allInstances -Type Engine | Where-Object State -notlike "Running" | Where-Object StartMode -notlike "Disabled" | Select ComputerName, InstanceName, ServiceType
+
+$stoppedEngineServerNames = $stoppedEngineServerInstanceNames | Select-Object -ExpandProperty ComputerName
+$stoppedEngineInstanceNames = $stoppedEngineServerInstanceNames | Select-Object -ExpandProperty InstanceName
+
+if ($printOnly -eq 1) {
+$stoppedEngineServerInstanceNames
+}
+if ($printOnly -eq 0) {
+Start-DbaService -ComputerName $stoppedEngineServerNames -InstanceName $stoppedEngineInstanceNames -Type Engine
+}
+}
+
+
+#SSRS
+if ($checkSSRS -eq 1) {
+$stoppedSSRSServerInstanceNames = Get-DbaService -SqlInstance $allInstances -Type SSRS | Where-Object State -notlike "Running" | Where-Object StartMode -notlike "Disabled" | Select ComputerName, InstanceName, ServiceType
+
+$stoppedSSRSServerNames = $stoppedSSRSServerInstanceNames | Select-Object -ExpandProperty ComputerName
+$stoppedSSRSInstanceNames = $stoppedSSRSServerInstanceNames | Select-Object -ExpandProperty InstanceName
+
+if ($printOnly -eq 1) {
+$stoppedSSRSServerInstanceNames
+}
+if ($printOnly -eq 0) {
+$stopMeasure = $stoppedSSRSServerInstanceNames | measure
+$stopCount = $stopMeasure.Count
+
+if ($stopCount -gt 0) {
+Start-DbaService -ComputerName $stoppedSSRSServerNames -InstanceName $stoppedSSRSInstanceNames -Type SSRS
+}
+}
+}
+
+
+#SSIS
+if ($checkSSIS -eq 1) {
+$stoppedSSISServerInstanceNames = Get-DbaService -SqlInstance $allInstances -Type SSIS | Where-Object State -notlike "Running" | Where-Object StartMode -notlike "Disabled" | Select ComputerName, InstanceName, ServiceType
+
+$stoppedSSISServerNames = $stoppedSSISServerInstanceNames | Select-Object -ExpandProperty ComputerName
+$stoppedSSISInstanceNames = $stoppedSSISServerInstanceNames | Select-Object -ExpandProperty InstanceName
+
+if ($printOnly -eq 1) {
+$stoppedSSISServerInstanceNames
+}
+if ($printOnly -eq 0) {
+$stopMeasure = $stoppedSSISServerInstanceNames | measure
+$stopCount = $stopMeasure.Count
+
+if ($stopCount -gt 0) {
+Start-DbaService -ComputerName $stoppedSSISServerNames -InstanceName $stoppedSSISInstanceNames -Type SSIS
+}
+}
+}
+
+#SSAS
+if ($checkSSAS -eq 1) {
+$stoppedSSASServerInstanceNames = Get-DbaService -SqlInstance $allInstances -Type SSAS | Where-Object State -notlike "Running" | Select ComputerName, InstanceName, ServiceType
+
+$stoppedSSASServerNames = $stoppedSSASServerInstanceNames | Select-Object -ExpandProperty ComputerName
+$stoppedSSASInstanceNames = $stoppedSSASServerInstanceNames | Select-Object -ExpandProperty InstanceName
+
+if ($printOnly -eq 1) {
+$stoppedSSASServerInstanceNames
+}
+if ($printOnly -eq 0) {
+$stopMeasure = $stoppedSSASServerInstanceNames | measure
+$stopCount = $stopMeasure.Count
+
+if ($stopCount -gt 0) {
+Start-DbaService -ComputerName $stoppedSSASServerNames -InstanceName $stoppedSSASInstanceNames -Type SSAS
+}
+}
+}
+
+
+
+#Browser
+if ($checkBrowser -eq 1) {
+Start-DbaService -ComputerName $allServerNames -Type Browser
+}
+
+
+#Additional Service Types
+if ($checkAdditionalServiceType -eq 1) {
+$query = @{
+Query = "select DISTINCT
+   @@SERVERNAME as [ServerInstanceName]
+ , REPLACE(@@SERVERNAME, '\' + CONVERT(VARCHAR(25), @@SERVICENAME), '') [ServerName]
+ , @@SERVICENAME as [InstanceName]
+ , CASE 
+    WHEN servicename LIKE '%Agent%' THEN 'Agent'
+    WHEN servicename LIKE '%Full-text%' THEN 'FullText'
+   END as [ServiceType]
+ from sys.dm_server_services
+ where (servicename like '%$additionalServiceType%')
+ and status_desc <> 'Running'
+ and (servicename LIKE '%Agent%' OR servicename LIKE '%Full-text%')
+ "
+ 
+}
+
+$stoppedServiceServerInstanceNames = Invoke-DbaQuery -SqlInstance $allInstances @query | Select ServerName, InstanceName, ServiceType
+
+$stoppedServiceServerNames = $stoppedServiceServerInstanceNames | Select-Object -ExpandProperty ServerName
+$stoppedServiceInstanceNames = $stoppedServiceServerInstanceNames | Select-Object -ExpandProperty InstanceName
+$stoppedServiceTypes = $stoppedServiceServerInstanceNames | Select-Object -ExpandProperty ServiceType
+
+if ($printOnly -eq 1) {
+$stoppedServiceServerInstanceNames 
+}
+if ($printOnly -eq 0) {
+$stopMeasure = $stoppedServiceServerInstanceNames | measure
+$stopCount = $stopMeasure.Count
+
+if ($stopCount -gt 0) {
+Start-DbaService -ComputerName $stoppedServiceServerNames -InstanceName $stoppedServiceInstanceNames -Type $stoppedServiceTypes
+}
+}
+}
+
+
