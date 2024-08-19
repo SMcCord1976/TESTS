@@ -1,0 +1,50 @@
+# Define the parameters
+$serviceName = "SQL Server Agent (SQL2016)"  # Specify the name of the service you want to monitor
+$emailFrom = "database.mail@sierraspace.com"
+$emailTo = "stephen.mccord@sierraspace.com"
+$smtpServer = "smtp.sierraspace.com"
+$smtpPort = 587  # or the port your SMTP server uses
+$smtpUser = "database.mail@sierraspace.com"
+$smtpPassword = "hD94m8g37CpJliNkx2J8"
+$subject = "Service Stopped Notification"
+$body = "The service $serviceName has stopped on the server."
+
+# Function to check the service status and send an email if stopped
+function Check-ServiceStatus {
+    $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+    if ($service -eq $null) {
+        Write-Output "Service $serviceName does not exist."
+        return
+    }
+    
+    if ($service.Status -eq 'Stopped') {
+        # Create the email message
+        $message = New-Object system.net.mail.mailmessage
+        $message.from = $emailFrom
+        $message.To.Add($emailTo)
+        $message.Subject = $subject
+        $message.Body = $body
+    
+        # SMTP server configuration
+        $smtp = New-Object Net.Mail.SmtpClient($smtpServer, $smtpPort)
+        $smtp.EnableSsl = $true
+        $smtp.Credentials = New-Object System.Net.NetworkCredential($smtpUser, $smtpPassword)
+    
+        # Send the email
+        try {
+	    [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { return $true } #disable certificate validation
+            $smtp.Send($message)
+            Write-Output "Notification email sent successfully."
+        } catch {
+            Write-Output "Failed to send email: $_"
+        }
+    } else {
+        Write-Output "Service $serviceName is running."
+    }
+}
+
+# Call the function
+Check-ServiceStatus
+
+
+
