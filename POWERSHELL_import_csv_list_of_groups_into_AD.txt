@@ -1,6 +1,0 @@
-#Import CSV with column headers - Name, groupscope, groupcategory, Description
-
-$Import_Group = Import-Csv -Path c:\groupstest.csv
-
-foreach ($group in $Import_Group) {New-ADGroup -Name $Group.Name -Path “OU=SQL,OU=Permission Groups,OU=M365_Synced_Groups,DC=sierraspace,DC=com” -Description $Group.description -GroupCategory $group.groupcategory -GroupScope $Group.groupscope}
-
