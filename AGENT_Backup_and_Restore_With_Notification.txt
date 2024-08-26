@@ -1,0 +1,199 @@
+USE [msdb]
+GO
+
+/****** Object:  Job [[DBA] - [Cobra Freeze Copy] Backup Cobra and restore over CobraFC_M]    Script Date: 8/26/2024 10:47:44 AM ******/
+BEGIN TRANSACTION
+DECLARE @ReturnCode INT
+SELECT @ReturnCode = 0
+/****** Object:  JobCategory [[Uncategorized (Local)]]    Script Date: 8/26/2024 10:47:45 AM ******/
+IF NOT EXISTS (SELECT name FROM msdb.dbo.syscategories WHERE name=N'[Uncategorized (Local)]' AND category_class=1)
+BEGIN
+EXEC @ReturnCode = msdb.dbo.sp_add_category @class=N'JOB', @type=N'LOCAL', @name=N'[Uncategorized (Local)]'
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+
+END
+
+DECLARE @jobId BINARY(16)
+EXEC @ReturnCode =  msdb.dbo.sp_add_job @job_name=N'[DBA] - [Cobra Freeze Copy] Backup Cobra and restore over CobraFC_M', 
+		@enabled=1, 
+		@notify_level_eventlog=0, 
+		@notify_level_email=0, 
+		@notify_level_netsend=0, 
+		@notify_level_page=0, 
+		@delete_level=0, 
+		@description=N'Take backup of Cobra database.  Take backup of CobraFC_M database.  Overwrite CobraFC_M database with backup of Cobra database.', 
+		@category_name=N'[Uncategorized (Local)]', 
+		@owner_login_name=N'sa', @job_id = @jobId OUTPUT
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+/****** Object:  Step [Backup databases]    Script Date: 8/26/2024 10:47:46 AM ******/
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'Backup databases', 
+		@step_id=1, 
+		@cmdexec_success_code=0, 
+		@on_success_action=4, 
+		@on_success_step_id=2, 
+		@on_fail_action=4, 
+		@on_fail_step_id=3, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'
+--Backup source database
+BACKUP DATABASE [Cobra] 
+TO  DISK = N''S:\MSSQL\DUMP\FREEZE_COPY\Cobra_FreezeCopy.bak'' 
+WITH NOFORMAT
+, INIT
+, SKIP
+, NOREWIND
+, NOUNLOAD
+, COMPRESSION
+, STATS = 10
+GO
+
+--Backup target database before overwriting
+DECLARE @FileNameDynamicDate varchar(max)
+
+SELECT @FileNameDynamicDate = (SELECT ''S:\MSSQL\DUMP\CobraFC_M_PreRestore_'' + convert(varchar(max),getdate(),112) + ''.bak'') --yyyymmdd format
+
+BACKUP DATABASE [CobraFC_M] TO DISK=@FileNameDynamicDate 
+WITH NOFORMAT
+, INIT
+, SKIP
+, NOREWIND
+, NOUNLOAD
+, COMPRESSION
+, STATS=10
+GO
+', 
+		@database_name=N'master', 
+		@flags=0
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+/****** Object:  Step [Restore CobraFC_M]    Script Date: 8/26/2024 10:47:46 AM ******/
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'Restore CobraFC_M', 
+		@step_id=2, 
+		@cmdexec_success_code=0, 
+		@on_success_action=4, 
+		@on_success_step_id=4, 
+		@on_fail_action=2, 
+		@on_fail_step_id=0, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'
+
+--Overwrite target database with source backup
+USE [master]
+ALTER DATABASE [CobraFC_M] SET SINGLE_USER WITH ROLLBACK IMMEDIATE
+RESTORE DATABASE [CobraFC_M] 
+FROM  DISK = N''S:\MSSQL\DUMP\FREEZE_COPY\Cobra_FreezeCopy.bak'' 
+WITH  FILE = 1,  
+MOVE N''Cobra'' TO N''E:\MSSQL\DATA\CobraFC_M.mdf'',  
+MOVE N''Cobra_log'' TO N''F:\MSSQL\LOG\CobraFC_M_log.ldf'',  
+NOUNLOAD,  REPLACE,  STATS = 10
+ALTER DATABASE [CobraFC_M] SET MULTI_USER
+
+GO
+
+', 
+		@database_name=N'master', 
+		@flags=0
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+/****** Object:  Step [backup failure alert]    Script Date: 8/26/2024 10:47:47 AM ******/
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'backup failure alert', 
+		@step_id=3, 
+		@cmdexec_success_code=0, 
+		@on_success_action=2, 
+		@on_success_step_id=0, 
+		@on_fail_action=2, 
+		@on_fail_step_id=0, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'--Declare variables
+DECLARE @ServerName VARCHAR(255)
+DECLARE @MailSubject VARCHAR(255)
+DECLARE @CombinedSubject VARCHAR(255)
+
+
+--Set variables
+SET @ServerName =  @@SERVERNAME
+SET @MailSubject = ''[FAILURE ALERT] - Cobra Freeze Copy backup step failed on ''
+SET @CombinedSubject = @MailSubject + '' '' + @ServerName  
+
+
+EXEC msdb.dbo.sp_send_dbmail
+@profile_name = ''SQLServer''
+--,@recipients = @recipients
+,@recipients = ''stephen.mccord@sierraspace.com; joshua.grasso@sierraspace.com'' --DEBUGGING
+,@subject = @CombinedSubject
+,@body = ''The database backup step in the job *[Cobra Freeze Copy] - Backup Cobra and restore over CobraFC_M* failed.      
+
+As a result, the restore of CobraFC_M has NOT occurred.      
+
+Please check the error log for failure details.''
+,@body_format =''HTML''
+
+', 
+		@database_name=N'master', 
+		@flags=0
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+/****** Object:  Step [Process success notification]    Script Date: 8/26/2024 10:47:47 AM ******/
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'Process success notification', 
+		@step_id=4, 
+		@cmdexec_success_code=0, 
+		@on_success_action=1, 
+		@on_success_step_id=0, 
+		@on_fail_action=2, 
+		@on_fail_step_id=0, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'
+
+--Declare variables
+DECLARE @ServerName VARCHAR(255)
+DECLARE @MailSubject VARCHAR(255)
+DECLARE @CombinedSubject VARCHAR(255)
+
+
+--Set variables
+SET @ServerName =  @@SERVERNAME
+SET @MailSubject = ''[FOR INFORMATION] - Restore of Cobra to CobraFC_M has completed successfully on ''
+SET @CombinedSubject = @MailSubject + '' '' + @ServerName  
+
+
+EXEC msdb.dbo.sp_send_dbmail
+@profile_name = ''SQLServer''
+,@recipients = ''stephen.mccord@sierraspace.com; joshua.grasso@sierraspace.com; mickey.rosal@sierraspace.com; darius.rossy@sierraspace.com; lee.elvart@sierraspace.com''
+--,@recipients = ''stephen.mccord@sierraspace.com'' --DEBUGGING
+,@subject = @CombinedSubject
+,@body = ''The Cobra database on PWWDB004 has been successfully backed up and subsequently restored to CobraFC_M''
+,@body_format =''HTML''
+', 
+		@database_name=N'master', 
+		@flags=0
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_update_job @job_id = @jobId, @start_step_id = 1
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_add_jobschedule @job_id=@jobId, @name=N'20240725', 
+		@enabled=0, 
+		@freq_type=1, 
+		@freq_interval=0, 
+		@freq_subday_type=0, 
+		@freq_subday_interval=0, 
+		@freq_relative_interval=0, 
+		@freq_recurrence_factor=0, 
+		@active_start_date=20240725, 
+		@active_end_date=99991231, 
+		@active_start_time=70000, 
+		@active_end_time=235959, 
+		@schedule_uid=N'80c3c53d-8310-4d0c-97a9-713a0298a2c5'
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_add_jobserver @job_id = @jobId, @server_name = N'(local)'
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+COMMIT TRANSACTION
+GOTO EndSave
+QuitWithRollback:
+    IF (@@TRANCOUNT > 0) ROLLBACK TRANSACTION
+EndSave:
+GO
+
