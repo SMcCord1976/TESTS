@@ -1,0 +1,7 @@
+
+--SHOW DEFAULT FILE PATHS
+
+SELECT 
+SERVERPROPERTY('InstanceDefaultDataPath') AS InstanceDefaultDataPath
+,SERVERPROPERTY('InstanceDefaultLogPath') AS InstanceDefaultLogPath
+,SERVERPROPERTY ('InstanceDefaultBackupPath') AS InstanceDefaultBackupPath
