@@ -1,0 +1,129 @@
+USE [msdb]
+GO
+
+/****** Object:  Job [[DBA] - rowcount all tables and send results as csv]    Script Date: 10/10/2024 11:20:25 AM ******/
+BEGIN TRANSACTION
+DECLARE @ReturnCode INT
+SELECT @ReturnCode = 0
+/****** Object:  JobCategory [[Uncategorized (Local)]]    Script Date: 10/10/2024 11:20:26 AM ******/
+IF NOT EXISTS (SELECT name FROM msdb.dbo.syscategories WHERE name=N'[Uncategorized (Local)]' AND category_class=1)
+BEGIN
+EXEC @ReturnCode = msdb.dbo.sp_add_category @class=N'JOB', @type=N'LOCAL', @name=N'[Uncategorized (Local)]'
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+
+END
+
+DECLARE @jobId BINARY(16)
+EXEC @ReturnCode =  msdb.dbo.sp_add_job @job_name=N'[DBA] - rowcount all tables and send results as csv', 
+		@enabled=1, 
+		@notify_level_eventlog=0, 
+		@notify_level_email=0, 
+		@notify_level_netsend=0, 
+		@notify_level_page=0, 
+		@delete_level=0, 
+		@description=N'No description available.', 
+		@category_name=N'[Uncategorized (Local)]', 
+		@owner_login_name=N'sa', @job_id = @jobId OUTPUT
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+/****** Object:  Step [Capture results]    Script Date: 10/10/2024 11:20:28 AM ******/
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'Capture results', 
+		@step_id=1, 
+		@cmdexec_success_code=0, 
+		@on_success_action=3, 
+		@on_success_step_id=0, 
+		@on_fail_action=2, 
+		@on_fail_step_id=0, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'
+DECLARE @query NVARCHAR(MAX) = 
+N''
+INSERT INTO [spc_dba_utilities].[dbo].[dba_all_rowcounts]
+(CaptureDate
+,DatabaseName
+,TableName
+,TableRowCount)
+SELECT 
+	 CONVERT(varchar(8), GETDATE(), 112) AS CaptureDate
+	,DB_NAME() AS DatabaseName
+	,CONCAT(QUOTENAME(OBJECT_SCHEMA_NAME(t.object_id)),N''''.'''', t.name) AS TableName
+	,SUM(rows) AS TableRowCount
+FROM sys.tables AS t
+JOIN sys.partitions AS p
+	ON p.object_id = t.object_id
+	AND p.index_id IN (0,1)
+GROUP BY CONCAT(QUOTENAME(OBJECT_SCHEMA_NAME(t.object_id)),N''''.'''', t.name)
+ORDER BY DatabaseName, TableName'';
+
+
+DECLARE @query_all_databases NVARCHAR(MAX) = 
+(
+	SELECT STRING_AGG(CONCAT(N''USE '', QUOTENAME(d.name), CAST(N'';'' AS NVARCHAR(MAX)), @query),N'';'')
+	FROM sys.databases AS d
+	LEFT JOIN sys.dm_hadr_database_replica_states AS drs
+	ON drs.database_id = d.database_id
+	WHERE d.state_desc = ''ONLINE''
+	AND d.name NOT IN (N''master'',N''model'',N''msdb'',N''tempdb'',N''distribution'',N''spc_dba_utilities'',N''SSISDB'',N''spc_entjira_replica_prod'')
+	AND COALESCE(drs.is_primary_replica, 1) = 1
+);
+
+EXEC sp_executesql @query_all_databases
+GO', 
+		@database_name=N'master', 
+		@flags=4
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+/****** Object:  Step [Send email with attachment]    Script Date: 10/10/2024 11:20:28 AM ******/
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'Send email with attachment', 
+		@step_id=2, 
+		@cmdexec_success_code=0, 
+		@on_success_action=1, 
+		@on_success_step_id=0, 
+		@on_fail_action=2, 
+		@on_fail_step_id=0, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'
+DECLARE @ResultsQuery NVARCHAR(MAX)
+DECLARE @tab char(1) = CHAR(9)
+DECLARE @ServerName VARCHAR(255)
+DECLARE @subject NVARCHAR(MAX)
+DECLARE @body NVARCHAR(MAX)
+
+SET @ServerName = @@SERVERNAME
+
+SET @subject = ''[FOR INFORMATION] - '' + @ServerName + ''.[DATABASE].[SCHEMA].[OBJECT] rowcounts''
+
+SET @body = ''Attached is a .csv file containing row counts of all tables that exist within each database on '' + @ServerName
+			   
+SELECT @ResultsQuery = ''select * from [spc_dba_utilities].[dbo].[dba_all_rowcounts]''
+
+
+EXEC msdb.dbo.sp_send_dbmail
+     @profile_name = ''SQLServer'',
+     @recipients = ''stephen.mccord@sierraspace.com'',
+     @subject = @subject,
+     @body_format = ''HTML'',
+     @body = @body,
+     @query = @ResultsQuery ,
+     @attach_query_result_as_file = 1,
+     @query_attachment_filename = ''rowcounts.csv'',  
+     @query_result_separator = @tab,
+     @query_result_no_padding = 1
+', 
+		@database_name=N'master', 
+		@flags=4
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_update_job @job_id = @jobId, @start_step_id = 1
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_add_jobserver @job_id = @jobId, @server_name = N'(local)'
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+COMMIT TRANSACTION
+GOTO EndSave
+QuitWithRollback:
+    IF (@@TRANCOUNT > 0) ROLLBACK TRANSACTION
+EndSave:
+GO
+
+
