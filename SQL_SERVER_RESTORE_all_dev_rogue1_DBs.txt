@@ -1,0 +1,381 @@
+
+
+USE [master]
+ALTER DATABASE [Cobra] SET SINGLE_USER WITH ROLLBACK IMMEDIATE
+RESTORE DATABASE [Cobra] 
+FROM  DISK = N'S:\MSSQL\DUMP\Cobra_DEV_VALIDATION.bak' 
+WITH  FILE = 1,  
+MOVE N'data_0' TO N'E:\MSSQL\DATA\Cobra.mdf',  
+MOVE N'log' TO N'F:\MSSQL\LOG\Cobra_log.ldf',  
+MOVE N'XTP' TO N'E:\MSSQL\DATA\Cobra.xtp',  
+NOUNLOAD,  REPLACE,  STATS = 5
+ALTER DATABASE [Cobra] SET MULTI_USER
+
+GO
+
+USE [master]
+ALTER DATABASE [Cobra_M] SET SINGLE_USER WITH ROLLBACK IMMEDIATE
+RESTORE DATABASE [Cobra_M] FROM  DISK = N'S:\MSSQL\DUMP\Cobra_M_DEV_VALIDATION.bak' WITH  FILE = 1,  MOVE N'data_0' TO N'E:\MSSQL\DATA\Cobra_M.mdf',  MOVE N'log' TO N'F:\MSSQL\LOG\Cobra_M_log.ldf',  MOVE N'XTP' TO N'E:\MSSQL\DATA\Cobra_M.xtp',  NOUNLOAD,  REPLACE,  STATS = 5
+ALTER DATABASE [Cobra_M] SET MULTI_USER
+
+GO
+
+USE [master]
+ALTER DATABASE [DeltekCP_Addin] SET SINGLE_USER WITH ROLLBACK IMMEDIATE
+RESTORE DATABASE [DeltekCP_Addin] FROM  DISK = N'S:\MSSQL\DUMP\DeltekCP_Addin_DEV_VALIDATION.bak' WITH  FILE = 1,  MOVE N'data_0' TO N'E:\MSSQL\DATA\DeltekCP_Addin.mdf',  MOVE N'log' TO N'F:\MSSQL\LOG\DeltekCP_Addin_log.ldf',  MOVE N'XTP' TO N'E:\MSSQL\DATA\DeltekCP_Addin.xtp',  NOUNLOAD,  REPLACE,  STATS = 5
+ALTER DATABASE [DeltekCP_Addin] SET MULTI_USER
+
+GO
+
+USE [master]
+ALTER DATABASE [DELTEKCP] SET SINGLE_USER WITH ROLLBACK IMMEDIATE
+RESTORE DATABASE [DELTEKCP] FROM  DISK = N'S:\MSSQL\DUMP\DELTEKCP_DEV_VALIDATION.bak' WITH  FILE = 1,  MOVE N'data_0' TO N'E:\MSSQL\DATA\DELTEKCP.mdf',  MOVE N'log' TO N'F:\MSSQL\LOG\DELTEKCP_log.ldf',  MOVE N'XTP' TO N'E:\MSSQL\DATA\DELTEKCP.xtp',  NOUNLOAD,  REPLACE,  STATS = 5
+ALTER DATABASE [DELTEKCP] SET MULTI_USER
+
+GO
+
+USE [master]
+ALTER DATABASE [DELTEKTC] SET SINGLE_USER WITH ROLLBACK IMMEDIATE
+RESTORE DATABASE [DELTEKTC] FROM  DISK = N'S:\MSSQL\DUMP\DELTEKTC_DEV_VALIDATION.bak' WITH  FILE = 1,  MOVE N'data_0' TO N'E:\MSSQL\DATA\DELTEKTC.mdf',  MOVE N'log' TO N'F:\MSSQL\LOG\DELTEKTC_log.ldf',  MOVE N'XTP' TO N'E:\MSSQL\DATA\DELTEKTC.xtp',  NOUNLOAD,  REPLACE,  STATS = 5
+ALTER DATABASE [DELTEKTC] SET MULTI_USER
+
+GO
+
+USE [master]
+ALTER DATABASE [DsoTestDb] SET SINGLE_USER WITH ROLLBACK IMMEDIATE
+RESTORE DATABASE [DsoTestDb] FROM  DISK = N'S:\MSSQL\DUMP\DsoTestDb_DEV_VALIDATION.bak' WITH  FILE = 1,  MOVE N'data_0' TO N'E:\MSSQL\DATA\DsoTestDb.mdf',  MOVE N'log' TO N'F:\MSSQL\LOG\DsoTestDb_log.ldf',  MOVE N'XTP' TO N'E:\MSSQL\DATA\DsoTestDb.xtp',  NOUNLOAD,  REPLACE,  STATS = 5
+ALTER DATABASE [DsoTestDb] SET MULTI_USER
+
+GO
+
+USE [master]
+ALTER DATABASE [ETQ] SET SINGLE_USER WITH ROLLBACK IMMEDIATE
+RESTORE DATABASE [ETQ] FROM  DISK = N'S:\MSSQL\DUMP\ETQ_DEV_VALIDATION.bak' WITH  FILE = 1,  MOVE N'data_0' TO N'E:\MSSQL\DATA\ETQ.mdf',  MOVE N'log' TO N'F:\MSSQL\LOG\ETQ_log.ldf',  MOVE N'XTP' TO N'E:\MSSQL\DATA\ETQ.xtp',  NOUNLOAD,  REPLACE,  STATS = 5
+ALTER DATABASE [ETQ] SET MULTI_USER
+
+GO
+
+USE [master]
+ALTER DATABASE [manufacturo] SET SINGLE_USER WITH ROLLBACK IMMEDIATE
+RESTORE DATABASE [manufacturo] FROM  DISK = N'S:\MSSQL\DUMP\manufacturo_DEV_VALIDATION.bak' WITH  FILE = 1,  MOVE N'data_0' TO N'E:\MSSQL\DATA\manufacturo.mdf',  MOVE N'log' TO N'F:\MSSQL\LOG\manufacturo_log.ldf',  MOVE N'XTP' TO N'E:\MSSQL\DATA\manufacturo.xtp',  NOUNLOAD,  REPLACE,  STATS = 5
+ALTER DATABASE [manufacturo] SET MULTI_USER
+
+GO
+
+USE [master]
+ALTER DATABASE [Rogue1] SET SINGLE_USER WITH ROLLBACK IMMEDIATE
+RESTORE DATABASE [Rogue1] FROM  DISK = N'S:\MSSQL\DUMP\Rogue1_DEV_VALIDATION.bak' WITH  FILE = 1,  MOVE N'data_0' TO N'E:\MSSQL\DATA\Rogue1.mdf',  MOVE N'log' TO N'F:\MSSQL\LOG\Rogue1_log.ldf',  MOVE N'XTP' TO N'E:\MSSQL\DATA\Rogue1.xtp',  NOUNLOAD,  REPLACE,  STATS = 5
+ALTER DATABASE [Rogue1] SET MULTI_USER
+
+GO
+
+USE [master]
+ALTER DATABASE [SerializedPartTracker] SET SINGLE_USER WITH ROLLBACK IMMEDIATE
+RESTORE DATABASE [SerializedPartTracker] FROM  DISK = N'S:\MSSQL\DUMP\SerializedPartTracker_DEV_VALIDATION.bak' WITH  FILE = 1,  MOVE N'SerializedPartTracker' TO N'E:\MSSQL\DATA\SerializedPartTracker.mdf',  MOVE N'SerializedPartTracker_log' TO N'F:\MSSQL\LOG\SerializedPartTracker_log.ldf',  MOVE N'XTP' TO N'E:\MSSQL\DATA\SerializedPartTracker.xtp',  NOUNLOAD,  REPLACE,  STATS = 5
+ALTER DATABASE [SerializedPartTracker] SET MULTI_USER
+
+GO
+
+USE [master]
+ALTER DATABASE [SonarQube] SET SINGLE_USER WITH ROLLBACK IMMEDIATE
+RESTORE DATABASE [SonarQube] FROM  DISK = N'S:\MSSQL\DUMP\SonarQube_DEV_VALIDATION.bak' WITH  FILE = 1,  MOVE N'data_0' TO N'E:\MSSQL\DATA\SonarQube.mdf',  MOVE N'log' TO N'F:\MSSQL\LOG\SonarQube_log.ldf',  MOVE N'XTP' TO N'E:\MSSQL\DATA\SonarQube.xtp',  NOUNLOAD,  REPLACE,  STATS = 5
+ALTER DATABASE [SonarQube] SET MULTI_USER
+
+GO
+
+USE [master]
+ALTER DATABASE [spc_edw] SET SINGLE_USER WITH ROLLBACK IMMEDIATE
+RESTORE DATABASE [spc_edw] FROM  DISK = N'S:\MSSQL\DUMP\spc_edw_DEV_VALIDATION.bak' WITH  FILE = 1,  MOVE N'data_0' TO N'E:\MSSQL\DATA\spc_edw.mdf',  MOVE N'log' TO N'F:\MSSQL\LOG\spc_edw_log.ldf',  MOVE N'XTP' TO N'E:\MSSQL\DATA\spc_edw.xtp',  NOUNLOAD,  REPLACE,  STATS = 5
+ALTER DATABASE [spc_edw] SET MULTI_USER
+
+GO
+
+USE [master]
+ALTER DATABASE [StagingUCDB] SET SINGLE_USER WITH ROLLBACK IMMEDIATE
+RESTORE DATABASE [StagingUCDB] FROM  DISK = N'S:\MSSQL\DUMP\StagingUCDB_DEV_VALIDATION.bak' WITH  FILE = 1,  MOVE N'data_0' TO N'E:\MSSQL\DATA\StagingUCDB.mdf',  MOVE N'log' TO N'F:\MSSQL\LOG\StagingUCDB_log.ldf',  MOVE N'XTP' TO N'E:\MSSQL\DATA\StagingUCDB.xtp',  NOUNLOAD,  REPLACE,  STATS = 5
+ALTER DATABASE [StagingUCDB] SET MULTI_USER
+
+GO
+
+USE [master]
+ALTER DATABASE [TCMax] SET SINGLE_USER WITH ROLLBACK IMMEDIATE
+RESTORE DATABASE [TCMax] FROM  DISK = N'S:\MSSQL\DUMP\TCMax_DEV_VALIDATION.bak' WITH  FILE = 1,  MOVE N'data_0' TO N'E:\MSSQL\DATA\TCMax.mdf',  MOVE N'log' TO N'F:\MSSQL\LOG\TCMax_log.ldf',  MOVE N'XTP' TO N'E:\MSSQL\DATA\TCMax.xtp',  NOUNLOAD,  REPLACE,  STATS = 5
+ALTER DATABASE [TCMax] SET MULTI_USER
+
+GO
+
+USE [master]
+ALTER DATABASE [tSQLt_Example] SET SINGLE_USER WITH ROLLBACK IMMEDIATE
+RESTORE DATABASE [tSQLt_Example] FROM  DISK = N'S:\MSSQL\DUMP\tSQLt_Example_DEV_VALIDATION.bak' WITH  FILE = 1,  MOVE N'data_0' TO N'E:\MSSQL\DATA\tSQLt_Example.mdf',  MOVE N'log' TO N'F:\MSSQL\LOG\tSQLt_Example_log.ldf',  MOVE N'XTP' TO N'E:\MSSQL\DATA\tSQLt_Example.xtp',  NOUNLOAD,  REPLACE,  STATS = 5
+ALTER DATABASE [tSQLt_Example] SET MULTI_USER
+
+GO
+
+USE [master]
+ALTER DATABASE [Workflow_Master] SET SINGLE_USER WITH ROLLBACK IMMEDIATE
+RESTORE DATABASE [Workflow_Master] FROM  DISK = N'S:\MSSQL\DUMP\Workflow_Master_DEV_VALIDATION.bak' WITH  FILE = 1,  MOVE N'data_0' TO N'E:\MSSQL\DATA\Workflow_Master.mdf',  MOVE N'log' TO N'F:\MSSQL\LOG\Workflow_Master_log.ldf',  MOVE N'XTP' TO N'E:\MSSQL\DATA\Workflow_Master.xtp',  NOUNLOAD,  REPLACE,  STATS = 5
+ALTER DATABASE [Workflow_Master] SET MULTI_USER
+
+GO
+
+
+
+
+
+--SET ALL DEV SDLC DATABASES TO SIMPLE RECOVERY
+EXEC dbo.sp_ineachdb 
+  @command            = N'ALTER DATABASE ? SET RECOVERY SIMPLE WITH NO_WAIT;',
+  @print_command_only = 0,
+  @user_only = 1;
+
+
+--SET ALL DATABASE OWNERS TO sa
+EXEC dbo.sp_ineachdb 
+  @command            = N'ALTER AUTHORIZATION ON DATABASE:: ? TO [sa];',
+  @print_command_only = 0,
+  @user_only = 1;
+
+
+
+
+USE master
+GO
+
+DROP TABLE tblOrphanUsers
+GO 
+--Formatting fixed
+--Case sensitivity fixed
+--syntax cleaned up
+--comments added
+
+CREATE TABLE tblOrphanUsers
+
+(username varchar(100),
+userSID varchar(max),
+dbname varchar(200) default db_name()
+)
+
+/* Generate insert statements for each database */
+
+SELECT 'USE '+ name+ ' INSERT INTO master.dbo.tblOrphanUsers (username,userSID) EXEC sp_change_users_login ''Report'' '
+FROM sys.databases
+WHERE name not in ('master','msdb','model','distribution','tempdb')
+ORDER BY name
+
+
+
+/* Copy and paste output from above and execute to insert orphaned users from each database into temp table*/
+
+----EXAMPLE: --USE Cobra INSERT INTO master.dbo.tblOrphanUsers (username,userSID) EXEC sp_change_users_login 'Report' 
+
+
+/* Generate statements to fix orphaned users */
+
+--USE ALTER USER COMMAND, JOIN TO syslogins TABLE TO MATCH UP WITH EXISTING LOGINS
+
+/****--NOTE:  IF THE LOGIN DOESN'T EXIST, THERE'S NOTHING TO REMAP.****/
+
+
+SELECT 'USE [' + a.dbname + ']; ALTER USER [' + a.username + '] WITH LOGIN = [' + a.username + '];'
+FROM [master].[dbo].[tblOrphanUsers] a
+INNER JOIN sys.syslogins s 
+ON s.name = a.username 
+
+
+/* Copy and paste output from above and execute to repair orphans and map them to their corresponding logins */
+
+----EXAMPLE: --USE [Cobra]; ALTER USER [svc_dtu_wc_ccure_qc] WITH LOGIN = [svc_dtu_wc_ccure_qc];
+
+
+/************************************************************************************************************************/
+/**** NEXT STEP ****/
+/**** NOTE THAT MAPPING ACCOUNTS THAT EXIST IN AZURE (ENTRA) DO NOT HAVE A DOMAIN NAME PREPENDING THEM. ****/
+/**** ADD DOMAIN NAME TO USER *AND* LOGIN SCOPE EITHER WITHIN THE SCRIPT, OR AFTER THE OUTPUT IS GENERATED (FIND / REPLACE) ****/
+/**** NOTE THAT THERE ARE VARIOUS SYSTEM OBJECTS THAT EXIST IN AZURE / PaaS SOLUTIONS THAT DON'T EXIST IN TRADITIONAL SQL SERVER (AND VICE VERSA) ****/ 
+/***********************************************************************************************************************/
+
+
+
+DECLARE 
+    @sql VARCHAR(2048)
+    ,@sort INT 
+
+DECLARE tmp CURSOR FOR
+
+
+/*********************************************/
+/*********   DB CONTEXT STATEMENT    *********/
+/*********************************************/
+SELECT '-- [-- DB CONTEXT --] --' AS [-- SQL STATEMENTS --],
+        1 AS [-- RESULT ORDER HOLDER --]
+UNION
+SELECT  'USE' + SPACE(1) + QUOTENAME(DB_NAME()) AS [-- SQL STATEMENTS --],
+        1 AS [-- RESULT ORDER HOLDER --]
+
+UNION
+
+SELECT '' AS [-- SQL STATEMENTS --],
+        2 AS [-- RESULT ORDER HOLDER --]
+
+UNION
+
+/*********************************************/
+/*********     DB USER CREATION      *********/
+/*********************************************/
+
+SELECT '-- [-- DB USERS --] --' AS [-- SQL STATEMENTS --],
+        3 AS [-- RESULT ORDER HOLDER --]
+UNION
+SELECT  'IF NOT EXISTS (SELECT [name] FROM sys.database_principals WHERE [name] = ' + SPACE(1) + '''' + [name] + '''' + ') BEGIN CREATE USER ' + SPACE(1) + QUOTENAME([name]) + ' FOR LOGIN ' + QUOTENAME([name]) + ' WITH DEFAULT_SCHEMA = ' + QUOTENAME([default_schema_name]) + SPACE(1) + 'END; ' AS [-- SQL STATEMENTS --],
+        4 AS [-- RESULT ORDER HOLDER --]
+FROM    sys.database_principals AS rm
+WHERE [type] IN ('U', 'S', 'G', 'X') -- windows users, sql users, windows groups, entra objects
+
+UNION
+
+/*********************************************/
+/*********    DB ROLE PERMISSIONS    *********/
+/*********************************************/
+SELECT '-- [-- DB ROLES --] --' AS [-- SQL STATEMENTS --],
+        5 AS [-- RESULT ORDER HOLDER --]
+UNION
+SELECT  'EXEC sp_addrolemember @rolename ='
+    + SPACE(1) + QUOTENAME(USER_NAME(rm.role_principal_id), '''') + ', @membername =' + SPACE(1) + QUOTENAME(USER_NAME(rm.member_principal_id), '''') AS [-- SQL STATEMENTS --],
+        6 AS [-- RESULT ORDER HOLDER --]
+FROM    sys.database_role_members AS rm
+WHERE   USER_NAME(rm.member_principal_id) IN (  
+                                                --get user names on the database
+                                                SELECT [name]
+                                                FROM sys.database_principals
+                                                WHERE [principal_id] > 4 -- 0 to 4 are system users/schemas
+                                                and [type] IN ('G', 'S', 'U', 'X') -- S = SQL user, U = Windows user, G = Windows group, X = External provider (Entra)
+                                              )
+--ORDER BY rm.role_principal_id ASC
+
+
+UNION
+
+SELECT '' AS [-- SQL STATEMENTS --],
+        7 AS [-- RESULT ORDER HOLDER --]
+
+UNION
+
+/*********************************************/
+/*********  OBJECT LEVEL PERMISSIONS *********/
+/*********************************************/
+SELECT '-- [-- OBJECT LEVEL PERMISSIONS --] --' AS [-- SQL STATEMENTS --],
+        8 AS [-- RESULT ORDER HOLDER --]
+UNION
+SELECT  CASE 
+            WHEN perm.state <> 'W' THEN perm.state_desc 
+            ELSE 'GRANT'
+        END
+        + SPACE(1) + perm.permission_name + SPACE(1) + 'ON ' + QUOTENAME(SCHEMA_NAME(obj.schema_id)) + '.' + QUOTENAME(obj.name) --select, execute, etc on specific objects
+        + CASE
+                WHEN cl.column_id IS NULL THEN SPACE(0)
+                ELSE '(' + QUOTENAME(cl.name) + ')'
+          END
+        + SPACE(1) + 'TO' + SPACE(1) + QUOTENAME(USER_NAME(usr.principal_id)) COLLATE database_default
+        + CASE 
+                WHEN perm.state <> 'W' THEN SPACE(0)
+                ELSE SPACE(1) + 'WITH GRANT OPTION'
+          END
+            AS [-- SQL STATEMENTS --],
+        9 AS [-- RESULT ORDER HOLDER --]
+FROM    
+    sys.database_permissions AS perm
+        INNER JOIN
+    sys.objects AS obj
+            ON perm.major_id = obj.[object_id]
+        INNER JOIN
+    sys.database_principals AS usr
+            ON perm.grantee_principal_id = usr.principal_id
+        LEFT JOIN
+    sys.columns AS cl
+            ON cl.column_id = perm.minor_id AND cl.[object_id] = perm.major_id
+--WHERE usr.name = @OldUser
+--ORDER BY perm.permission_name ASC, perm.state_desc ASC
+
+
+
+UNION
+
+SELECT '' AS [-- SQL STATEMENTS --],
+    10 AS [-- RESULT ORDER HOLDER --]
+
+UNION
+
+/*********************************************/
+/*********    DB LEVEL PERMISSIONS   *********/
+/*********************************************/
+SELECT '-- [--DB LEVEL PERMISSIONS --] --' AS [-- SQL STATEMENTS --],
+        11 AS [-- RESULT ORDER HOLDER --]
+UNION
+SELECT  CASE 
+            WHEN perm.state <> 'W' THEN perm.state_desc --W=Grant With Grant Option
+            ELSE 'GRANT'
+        END
+    + SPACE(1) + perm.permission_name --CONNECT, etc
+    + SPACE(1) + 'TO' + SPACE(1) + '[' + USER_NAME(usr.principal_id) + ']' COLLATE database_default --TO <user name>
+    + CASE 
+            WHEN perm.state <> 'W' THEN SPACE(0) 
+            ELSE SPACE(1) + 'WITH GRANT OPTION' 
+      END
+        AS [-- SQL STATEMENTS --],
+        12 AS [-- RESULT ORDER HOLDER --]
+FROM    sys.database_permissions AS perm
+    INNER JOIN
+    sys.database_principals AS usr
+    ON perm.grantee_principal_id = usr.principal_id
+--WHERE usr.name = @OldUser
+
+WHERE   [perm].[major_id] = 0
+    AND [usr].[principal_id] > 4 -- 0 to 4 are system users/schemas
+    AND [usr].[type] IN ('G', 'S', 'U', 'X') -- S = SQL user, U = Windows user, G = Windows group, X = External provider (Entra)
+
+UNION
+
+SELECT '' AS [-- SQL STATEMENTS --],
+        13 AS [-- RESULT ORDER HOLDER --]
+
+UNION 
+
+SELECT '-- [--DB LEVEL SCHEMA PERMISSIONS --] --' AS [-- SQL STATEMENTS --],
+        14 AS [-- RESULT ORDER HOLDER --]
+UNION
+SELECT  CASE
+            WHEN perm.state <> 'W' THEN perm.state_desc --W=Grant With Grant Option
+            ELSE 'GRANT'
+            END
+                + SPACE(1) + perm.permission_name --CONNECT, etc
+                + SPACE(1) + 'ON' + SPACE(1) + class_desc + '::' COLLATE database_default --TO <user name>
+                + QUOTENAME(SCHEMA_NAME(major_id))
+                + SPACE(1) + 'TO' + SPACE(1) + QUOTENAME(USER_NAME(grantee_principal_id)) COLLATE database_default
+                + CASE
+                    WHEN perm.state <> 'W' THEN SPACE(0)
+                    ELSE SPACE(1) + 'WITH GRANT OPTION'
+                    END
+            AS [-- SQL STATEMENTS --],
+        15 AS [-- RESULT ORDER HOLDER --]
+from sys.database_permissions AS perm
+    inner join sys.schemas s
+        on perm.major_id = s.schema_id
+    inner join sys.database_principals dbprin
+        on perm.grantee_principal_id = dbprin.principal_id
+WHERE class = 3 --class 3 = schema
+
+
+ORDER BY [-- RESULT ORDER HOLDER --]
+
+
+OPEN tmp
+FETCH NEXT FROM tmp INTO @sql, @sort
+WHILE @@FETCH_STATUS = 0
+BEGIN
+        PRINT @sql
+        FETCH NEXT FROM tmp INTO @sql, @sort    
+END
+
+CLOSE tmp
+DEALLOCATE tmp 
+

@@ -1,0 +1,221 @@
+BACKUP DATABASE [Cobra] 
+TO  URL = N'https://dbanonprod.blob.core.usgovcloudapi.net/backuptest/Cobra_DEV_VALIDATION.bak' 
+WITH  BLOCKSIZE = 65536
+, MAXTRANSFERSIZE = 4194304
+, COPY_ONLY
+, FORMAT --overwrite existing backup files with the same name
+, NOREWIND
+, NOUNLOAD
+, COMPRESSION
+, STATS = 10
+GO
+
+BACKUP DATABASE [Cobra_M] 
+TO  URL = N'https://dbanonprod.blob.core.usgovcloudapi.net/backuptest/Cobra_M_DEV_VALIDATION.bak' 
+WITH  BLOCKSIZE = 65536
+, MAXTRANSFERSIZE = 4194304
+, COPY_ONLY
+, FORMAT --overwrite existing backup files with the same name
+, NOREWIND
+, NOUNLOAD
+, COMPRESSION
+, STATS = 10
+GO
+
+BACKUP DATABASE [DELTEKCP] 
+TO  URL = N'https://dbanonprod.blob.core.usgovcloudapi.net/backuptest/DELTEKCP_DEV_VALIDATION.bak' 
+WITH  BLOCKSIZE = 65536
+, MAXTRANSFERSIZE = 4194304
+, COPY_ONLY
+, FORMAT --overwrite existing backup files with the same name
+, NOREWIND
+, NOUNLOAD
+, COMPRESSION
+, STATS = 10
+GO
+
+BACKUP DATABASE [DeltekCP_Addin] 
+TO  URL = N'https://dbanonprod.blob.core.usgovcloudapi.net/backuptest/DeltekCP_Addin_DEV_VALIDATION.bak' 
+WITH  BLOCKSIZE = 65536
+, MAXTRANSFERSIZE = 4194304
+, COPY_ONLY
+, FORMAT --overwrite existing backup files with the same name
+, NOREWIND
+, NOUNLOAD
+, COMPRESSION
+, STATS = 10
+GO
+
+BACKUP DATABASE [DELTEKTC] 
+TO  URL = N'https://dbanonprod.blob.core.usgovcloudapi.net/backuptest/DELTEKTC_DEV_VALIDATION.bak' 
+WITH  BLOCKSIZE = 65536
+, MAXTRANSFERSIZE = 4194304
+, COPY_ONLY
+, FORMAT --overwrite existing backup files with the same name
+, NOREWIND
+, NOUNLOAD
+, COMPRESSION
+, STATS = 10
+GO
+
+BACKUP DATABASE [DsoTestDb] 
+TO  URL = N'https://dbanonprod.blob.core.usgovcloudapi.net/backuptest/DsoTestDb_DEV_VALIDATION.bak' 
+WITH  BLOCKSIZE = 65536
+, MAXTRANSFERSIZE = 4194304
+, COPY_ONLY
+, FORMAT --overwrite existing backup files with the same name
+, NOREWIND
+, NOUNLOAD
+, COMPRESSION
+, STATS = 10
+GO
+
+BACKUP DATABASE [ETQ] 
+TO  URL = N'https://dbanonprod.blob.core.usgovcloudapi.net/backuptest/ETQ_DEV_VALIDATION.bak' 
+WITH  BLOCKSIZE = 65536
+, MAXTRANSFERSIZE = 4194304
+, COPY_ONLY
+, FORMAT --overwrite existing backup files with the same name
+, NOREWIND
+, NOUNLOAD
+, COMPRESSION
+, STATS = 10
+GO
+
+BACKUP DATABASE [manufacturo] 
+TO  URL = N'https://dbanonprod.blob.core.usgovcloudapi.net/backuptest/manufacturo_DEV_VALIDATION.bak' 
+WITH  BLOCKSIZE = 65536
+, MAXTRANSFERSIZE = 4194304
+, COPY_ONLY
+, FORMAT --overwrite existing backup files with the same name
+, NOREWIND
+, NOUNLOAD
+, COMPRESSION
+, STATS = 10
+GO
+
+BACKUP DATABASE [Rogue1] 
+TO  URL = N'https://dbanonprod.blob.core.usgovcloudapi.net/backuptest/Rogue1_DEV_VALIDATION.bak' 
+WITH  BLOCKSIZE = 65536
+, MAXTRANSFERSIZE = 4194304
+, COPY_ONLY
+, FORMAT --overwrite existing backup files with the same name
+, NOREWIND
+, NOUNLOAD
+, COMPRESSION
+, STATS = 10
+GO
+
+
+BACKUP DATABASE [SerializedPartTracker] 
+TO  URL = N'https://dbanonprod.blob.core.usgovcloudapi.net/backuptest/SerializedPartTracker_DEV_VALIDATION.bak' 
+WITH  BLOCKSIZE = 65536
+, MAXTRANSFERSIZE = 4194304
+, COPY_ONLY
+, FORMAT --overwrite existing backup files with the same name
+, NOREWIND
+, NOUNLOAD
+, COMPRESSION
+, STATS = 10
+GO
+
+
+
+BACKUP DATABASE [SonarQube] 
+TO  URL = N'https://dbanonprod.blob.core.usgovcloudapi.net/backuptest/SonarQube_DEV_VALIDATION.bak' 
+WITH  BLOCKSIZE = 65536
+, MAXTRANSFERSIZE = 4194304
+, COPY_ONLY
+, FORMAT --overwrite existing backup files with the same name
+, NOREWIND
+, NOUNLOAD
+, COMPRESSION
+, STATS = 10
+GO
+
+
+BACKUP DATABASE [spc_edw] 
+TO  URL = N'https://dbanonprod.blob.core.usgovcloudapi.net/backuptest/spc_edw_DEV_VALIDATION.bak' 
+WITH  BLOCKSIZE = 65536
+, MAXTRANSFERSIZE = 4194304
+, COPY_ONLY
+, FORMAT --overwrite existing backup files with the same name
+, NOREWIND
+, NOUNLOAD
+, COMPRESSION
+, STATS = 10
+GO
+
+BACKUP DATABASE [spc_edw_archive] 
+TO  URL = N'https://dbanonprod.blob.core.usgovcloudapi.net/backuptest/spc_edw_archive_DEV_VALIDATION.bak' 
+WITH  BLOCKSIZE = 65536
+, MAXTRANSFERSIZE = 4194304
+, COPY_ONLY
+, FORMAT --overwrite existing backup files with the same name
+, NOREWIND
+, NOUNLOAD
+, COMPRESSION
+, STATS = 10
+GO
+
+
+BACKUP DATABASE [StagingUCDB] 
+TO  URL = N'https://dbanonprod.blob.core.usgovcloudapi.net/backuptest/StagingUCDB_archive_DEV_VALIDATION.bak' 
+WITH  BLOCKSIZE = 65536
+, MAXTRANSFERSIZE = 4194304
+, COPY_ONLY
+, FORMAT --overwrite existing backup files with the same name
+, NOREWIND
+, NOUNLOAD
+, COMPRESSION
+, STATS = 10
+GO
+
+BACKUP DATABASE [TCMax] 
+TO  URL = N'https://dbanonprod.blob.core.usgovcloudapi.net/backuptest/TCMax_DEV_VALIDATION.bak' 
+WITH  BLOCKSIZE = 65536
+, MAXTRANSFERSIZE = 4194304
+, COPY_ONLY
+, FORMAT --overwrite existing backup files with the same name
+, NOREWIND
+, NOUNLOAD
+, COMPRESSION
+, STATS = 10
+GO
+
+BACKUP DATABASE [tSQLt_Example] 
+TO  URL = N'https://dbanonprod.blob.core.usgovcloudapi.net/backuptest/tSQLt_Example_DEV_VALIDATION.bak' 
+WITH  BLOCKSIZE = 65536
+, MAXTRANSFERSIZE = 4194304
+, COPY_ONLY
+, FORMAT --overwrite existing backup files with the same name
+, NOREWIND
+, NOUNLOAD
+, COMPRESSION
+, STATS = 10
+GO
+
+
+BACKUP DATABASE [Workflow_Master] 
+TO  URL = N'https://dbanonprod.blob.core.usgovcloudapi.net/backuptest/Workflow_Master_DEV_VALIDATION.bak' 
+WITH  BLOCKSIZE = 65536
+, MAXTRANSFERSIZE = 4194304
+, COPY_ONLY
+, FORMAT --overwrite existing backup files with the same name
+, NOREWIND
+, NOUNLOAD
+, COMPRESSION
+, STATS = 10
+GO
+
+
+
+
+
+
+
+
+
+
+
+
