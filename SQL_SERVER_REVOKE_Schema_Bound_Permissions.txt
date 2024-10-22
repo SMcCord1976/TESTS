@@ -1,0 +1,29 @@
+--Script to REVOKE all explicitly granted schema bound permissions within a single database 
+SELECT 
+'REVOKE ' + permission_name + ' ON SCHEMA::[' + SCHEMA_NAME(major_id) + '] TO [' + USER_NAME(grantee_principal_id) + 'AS [dbo]'
+FROM sys.database_permissions AS PERM
+JOIN sys.database_principals AS Prin
+    ON PERM.major_ID = Prin.principal_id
+        AND class_desc = 'SCHEMA'
+WHERE state_desc = 'GRANT'---- Only Grants, no Denies
+--    AND major_id = SCHEMA_ID('TestSchema') ----Specific schema
+--    AND grantee_principal_id = user_id('TestUser') ----Specific user
+--    AND    permission_name = 'SELECT' ----Specific permission
+ORDER BY DB_NAME(), SCHEMA_NAME(major_id)
+
+
+
+--Script to REVOKE all explicitly granted schema bound permissions ALL databases
+EXEC sp_MSforeachdb 'USE ? SELECT 
+
+''REVOKE '' + permission_name + '' ON SCHEMA::['' + SCHEMA_NAME(major_id) + ''] TO ['' + USER_NAME(grantee_principal_id) + ''AS [dbo]''
+
+
+FROM sys.database_permissions AS PERM
+JOIN sys.database_principals AS Prin
+    ON PERM.major_ID = Prin.principal_id
+        AND class_desc = ''SCHEMA''
+WHERE state_desc = ''GRANT'' 
+ORDER BY DB_NAME(), SCHEMA_NAME(major_id)'
+
+
