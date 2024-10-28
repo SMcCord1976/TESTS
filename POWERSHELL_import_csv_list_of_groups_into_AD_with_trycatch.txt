@@ -1,0 +1,18 @@
+Import-Module ActiveDirectory
+
+# Path to your CSV file
+$csvFile = "S:\EDW_teamcenter_AD_groups_20241028.csv"
+
+# Import the CSV file
+$groups = Import-Csv $csvFile
+
+# Iterate through each group in the CSV
+foreach ($group in $groups) {
+    # Create the group if it doesn't exist
+    try {
+        New-ADGroup -Name $group.Name -GroupCategory $group.GroupCategory -GroupScope $group.GroupScope -Description $group.Description -Path $group.Path -ErrorAction Stop
+        Write-Host "Group '$($group.Name)' created successfully."
+    } catch {
+        Write-Host "Error creating group '$($group.Name)': $($_.Exception.Message)"
+    }
+}
