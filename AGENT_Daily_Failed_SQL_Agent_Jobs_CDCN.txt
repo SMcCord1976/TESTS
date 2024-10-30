@@ -1,0 +1,286 @@
+USE [msdb]
+GO
+
+/****** Object:  Job [[DBA] - Daily Failed SQL Agent Jobs]    Script Date: 10/30/2024 3:53:46 PM ******/
+BEGIN TRANSACTION
+DECLARE @ReturnCode INT
+SELECT @ReturnCode = 0
+/****** Object:  JobCategory [[Uncategorized (Local)]]    Script Date: 10/30/2024 3:53:46 PM ******/
+IF NOT EXISTS (SELECT name FROM msdb.dbo.syscategories WHERE name=N'[Uncategorized (Local)]' AND category_class=1)
+BEGIN
+EXEC @ReturnCode = msdb.dbo.sp_add_category @class=N'JOB', @type=N'LOCAL', @name=N'[Uncategorized (Local)]'
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+
+END
+
+DECLARE @jobId BINARY(16)
+EXEC @ReturnCode =  msdb.dbo.sp_add_job @job_name=N'[DBA] - Daily Failed SQL Agent Jobs', 
+		@enabled=1, 
+		@notify_level_eventlog=0, 
+		@notify_level_email=0, 
+		@notify_level_netsend=0, 
+		@notify_level_page=0, 
+		@delete_level=0, 
+		@description=N'No description available.', 
+		@category_name=N'[Uncategorized (Local)]', 
+		@owner_login_name=N'sa', @job_id = @jobId OUTPUT
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+/****** Object:  Step [Generate and send report]    Script Date: 10/30/2024 3:53:46 PM ******/
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'Generate and send report', 
+		@step_id=1, 
+		@cmdexec_success_code=0, 
+		@on_success_action=1, 
+		@on_success_step_id=0, 
+		@on_fail_action=2, 
+		@on_fail_step_id=0, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'EXECUTE AS LOGIN = ''cms_admin''; --AGENT PROXY ACCOUNT - USED IN LEGACY / INHERITED ENVIRONMENTS WHERE THE LOCAL SQL SERVER AGENT ACCOUNT HAS DIMINISHED PERMISSIONS
+
+
+/* CREATE A VARIABLE THAT COUNTS THE NUMBER OF FAILED JOBS ON THE INSTANCE SINCE THE LAST TIME *THIS* JOB (THE REPORT ITSELF) RAN */
+
+DECLARE @CountValue INT
+SELECT @CountValue = COUNT (*) FROM msdb.dbo.sysjobhistory sjh
+WHERE run_status in (0,2,3,4)
+AND msdb.dbo.agent_datetime(sjh.run_date, sjh.run_time) > (select MAX(msdb.dbo.agent_datetime(sjh.run_date, sjh.run_time)) from msdb.dbo.sysjobhistory sjh 
+join msdb.dbo.sysjobs sj 
+on sjh.job_id = sj.job_id
+where sj.name = ''[DBA] - Daily Failed SQL Agent Jobs'') 
+
+
+REVERT --SWITCH BACK TO (ACTUAL) AGENT CONTEXT
+
+
+
+/* IF THERE ARE NO FAILED JOBS SINCE THE LAST TIME THIS JOB (THE REPORT ITSELF) RAN, SEND AN EMAIL LETTING US KNOW */
+
+IF (@CountValue = 0)
+BEGIN 
+
+--Declare variables
+DECLARE @ServerName VARCHAR(255)
+DECLARE @MailRecipients VARCHAR(MAX) = ''stephenm@consumerdirectcare.com'' 
+DECLARE @MailSubject VARCHAR(255)
+DECLARE @CombinedSubject VARCHAR(255)
+--DECLARE @xml NVARCHAR(MAX) --XML VARIABLE DECLARED IN ORPHANS DETECTED SECTION
+DECLARE @blankbody NVARCHAR(MAX)
+
+--Set variables
+SET @ServerName =  @@SERVERNAME
+SET @MailSubject = ''[FOR INFORMATION / REVIEW] - Daily Failed SQL Agent Jobs '' + @@SERVERNAME
+SET @CombinedSubject = @ServerName + @MailSubject --TO ENABLE OUTLOOK SORTING
+
+
+SET @blankbody = ''NO FAILED JOBS DETECTED ON THE INSTANCE SINCE THE LAST REPORT
+
+~*~NFAR~*~''
+
+--Trigger the email 
+EXEC msdb.dbo.sp_send_dbmail
+	@profile_name = ''SQLServer''
+--,	@recipients = @MailRecipients
+,   @recipients = ''stephenm@consumerdirectcare.com'' --DEBUGGING
+,	@subject = @MailSubject
+,	@body = @blankbody
+,   @body_format = ''HTML'';
+
+END
+
+ 
+ELSE   
+
+/* IF THE VARIABLE CREATED ABOVE HAS A VALUE OTHER THAN 0, CAPTURE THE FAILED JOB INFORMATION AND SEND IT TO US */
+
+BEGIN
+
+
+CREATE TABLE #TempJobStatus
+( [JobName] [varchar](max),
+  [step_id]  [varchar](max),
+  [StepName]  [varchar](max),
+  [RunDateAndTime] [varchar](max),
+  [Duration] [varchar](max),
+  [RunStatus] [varchar](max),
+  [message] [varchar](max)
+)
+
+
+EXECUTE AS LOGIN = ''cms_admin''; --AGENT PROXY ACCOUNT
+
+
+INSERT INTO #TempJobStatus
+SELECT 
+  sj.name JobName
+, sjh.step_id
+, ISNULL(sjs.step_name, ''Job Status'') StepName
+, msdb.dbo.agent_datetime(sjh.run_date, sjh.run_time) RunDateAndTime
+, STUFF(STUFF(RIGHT(''00000'' + CAST(run_duration AS VARCHAR(6)),6),3,0,'':''),6,0,'':'') AS Duration
+, CASE sjh.run_status
+    WHEN 0 THEN ''Failed''
+    WHEN 1 THEN ''Succeeded''
+    WHEN 2 THEN ''Retry''
+    WHEN 3 THEN ''Canceled''
+    WHEN 4 THEN ''In Progress''
+  END RunStatus
+, sjh.message
+FROM msdb.dbo.sysjobs sj
+  INNER JOIN msdb.dbo.sysjobhistory sjh ON sj.job_id = sjh.job_id
+  LEFT OUTER JOIN msdb.dbo.sysjobsteps sjs ON sjh.job_id = sjs.job_id AND sjh.step_id = sjs.step_id  
+WHERE sjh.run_status in (0,2,3,4) 
+--AND sj.name like ''%DBA%-%'' --ONLY JOBS THAT HAVE THIS NAMING PATTERN.  CUSTOMIZE AS NECESSARY.
+AND 
+msdb.dbo.agent_datetime(sjh.run_date, sjh.run_time) > (select MAX(msdb.dbo.agent_datetime(sjh.run_date, sjh.run_time)) from msdb.dbo.sysjobhistory sjh 
+join msdb.dbo.sysjobs sj 
+on sjh.job_id = sj.job_id
+where sj.name = ''[DBA] - Daily Failed SQL Agent Jobs'') 
+
+
+
+REVERT --SWITCH BACK TO (ACTUAL) AGENT CONTEXT
+
+
+-- define CSS inside the HTML head section
+DECLARE @body VARCHAR(MAX)= ''
+<html>
+<head> <style>
+ #g {color: green;}
+ #r {color: red;}
+ #odd {background-color: lightgrey}
+</style> </head>'';
+ 
+DECLARE @i INT = 0
+, @pos INT
+, @s VARCHAR(MAX)
+, @ts VARCHAR(MAX)
+, @xml VARCHAR(MAX);
+
+--DECLARE @MailRecipients VARCHAR(MAX) = ''stephenm@consumerdirectcare.com'' --VARIABLE DECLARED IN ZERO FAILURES SECTION
+--DECLARE @ServerName VARCHAR(255) --VARIABLE DECLARED IN ZERO FAILURES SECTION
+--DECLARE @MailSubject VARCHAR(255) --VARIABLE DECLARED IN ZERO FAILURES SECTION
+--DECLARE @CombinedSubject VARCHAR(255) --VARIABLE DECLARED IN ZERO FAILURES SECTION
+
+
+--Set variables
+SET @ServerName =  @@SERVERNAME
+SET @MailSubject = ''[FOR INFORMATION / REVIEW] - Daily Failed SQL Agent Jobs '' + @@SERVERNAME
+SET @CombinedSubject = @ServerName + @MailSubject
+
+
+ 
+--get core xml string
+SET @xml = CAST(( SELECT 
+[JobName] AS ''td''
+, ''''
+,[step_id] AS ''td''
+, ''''
+,[StepName] AS ''td''
+,''''
+,[RunDateAndTime] AS ''td''
+,''''
+,[Duration] AS ''td''
+,''''
+, CASE WHEN [RunStatus] = ''Failed'' 
+		THEN''zr''+CAST([RunStatus] AS VARCHAR(30))
+     WHEN [RunStatus] = ''Succeeded'' 
+		THEN''zg''+CAST([RunStatus] AS VARCHAR(30))
+     ELSE CAST([RunStatus] AS VARCHAR(30))
+END AS ''td''
+,''''
+,[message] AS ''td''
+,''''
+FROM  #TempJobStatus
+ORDER BY [RunStatus], [JobName]
+FOR XML PATH(''tr''), ELEMENTS ) AS NVARCHAR(MAX));
+
+
+--EVALUATE CASE STATEMENT.  COLOR TEXT FONT ACCORDINGLY. 
+SET @xml=REPLACE(@xml, ''<td>zg'', ''<td id="g"><b>''); -- Green
+SET @xml=REPLACE(@xml, ''<td>zr'', ''<td id="r"><b>''); -- Red
+
+
+--ZEBRA STRIPE THE ROWS IN THE RESULT SET 
+SELECT @s = ''''
+, @pos = CHARINDEX(''<tr>'', @xml, 4);
+ 
+WHILE(@pos > 0)
+BEGIN
+   SET @i += 1;
+   SET @ts = SUBSTRING(@xml, 1, @pos-1)
+   IF(@i % 2 = 1)
+      set @ts = REPLACE(@ts, ''<tr>'', ''<tr id="odd">'');
+   SET @s += @ts;
+   SET @xml = SUBSTRING(@xml, @pos, LEN(@xml));
+   SET @pos =  CHARINDEX(''<tr>'', @xml, 4);
+END -- while
+-- handling the last piece
+SET @i +=1;
+SET @ts = @xml;
+IF(@i % 2 = 1)
+   SET @ts = REPLACE(@ts, ''<tr>'', ''<tr id="odd">'');
+SET @s += @ts;
+
+--WRITE RESULT SET TO EMAIL BODY
+SET @body +=''<body><H3>Captured Sessions</H3>
+Below is a list of SQL Agent Jobs and their outcomes on '' + @@SERVERNAME + 
+
+''
+
+<BR><BR>
+More detail can be found in the SQL Agent Job Activity Monitor on '' + @@SERVERNAME + '' 
+
+<BR><BR>
+<table border = 1> 
+<tr>
+<th> JobName </th> 
+<th> Step ID </th> 
+<th> Step Name </th> 
+<th> Run DateTime </th> 
+<th> Duration </th> 
+<th> Status </th> 
+<th> Message </th> 
+
+</tr>'' 
++ @s+''</table> </body> </html>
+
+<BR><BR>
+Regards,
+<BR>
+CDCN DBA Team'';
+ 
+
+
+EXEC msdb.dbo.sp_send_dbmail
+@profile_name = ''SQLServer''
+--,@recipients = @MailRecipients
+,@recipients = ''stephenm@consumerdirectcare.com'' --DEBUGGING
+,@subject = @MailSubject
+,@body = @body
+,@body_format =''HTML'';
+
+END
+
+
+
+
+
+
+
+
+', 
+		@database_name=N'master', 
+		@flags=0
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_update_job @job_id = @jobId, @start_step_id = 1
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_add_jobserver @job_id = @jobId, @server_name = N'(local)'
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+COMMIT TRANSACTION
+GOTO EndSave
+QuitWithRollback:
+    IF (@@TRANCOUNT > 0) ROLLBACK TRANSACTION
+EndSave:
+GO
+
+
