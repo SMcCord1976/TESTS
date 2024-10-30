@@ -1,0 +1,66 @@
+-------------------------------------------------------------------------------------------------- 
+-- ENABLE DB Mail Feature
+-------------------------------------------------------------------------------------------------- 
+
+use master 
+go 
+sp_configure 'show advanced options',1 
+go 
+reconfigure with override 
+go 
+sp_configure 'Database Mail XPs',1 
+--go 
+--sp_configure 'SQL Mail XPs',0 --old configuration facet.  disregard.
+go 
+reconfigure 
+go 
+
+-------------------------------------------------------------------------------------------------- 
+-- BEGIN Mail Settings  
+-------------------------------------------------------------------------------------------------- 
+
+IF NOT EXISTS(SELECT * FROM msdb.dbo.sysmail_profile WHERE  name = 'SQLServer')  
+  BEGIN 
+    EXECUTE msdb.dbo.sysmail_add_profile_sp 
+      @profile_name = 'SQLServer', 
+      @description  = 'DBATeam'; 
+  END 
+   
+  IF NOT EXISTS(SELECT * FROM msdb.dbo.sysmail_account WHERE  name = 'SQLServer') 
+  BEGIN 
+    EXECUTE msdb.dbo.sysmail_add_account_sp 
+    @account_name            = 'SQLServer', 
+    @email_address           = 'DBATeam@consumerdirectcare.com', 
+    @display_name            = 'DBATeam', 
+    @replyto_address         = 'noreply@consumerdirectcare.com', 
+    @description             = '', 
+    @mailserver_name         = 'smpt.office365.com', 
+--    @mailserver_name         = 'smpt.office365.com', ----There is a legacy SMTP server for use with some (older?) VMs - mail.consumerdirectonline.com
+    @mailserver_type         = 'SMTP', 
+    @port                    = '587', ----If using legacy SMTP server, port 25
+    @username                = 'DBATeam@consumerdirectcare.com', 
+    @password                = 'e*2U?uOnH]e0ruq1mlnM',  
+    @use_default_credentials =  0 , 
+    @enable_ssl              =  1 ; ----If using legacy SMTP server, disable SSL (0)
+  END 
+   
+IF NOT EXISTS(SELECT * 
+              FROM msdb.dbo.sysmail_profileaccount pa 
+                INNER JOIN msdb.dbo.sysmail_profile p ON pa.profile_id = p.profile_id 
+                INNER JOIN msdb.dbo.sysmail_account a ON pa.account_id = a.account_id   
+              WHERE p.name = 'SQLServer'
+                AND a.name = 'SQLServer')  
+
+BEGIN 
+    EXECUTE msdb.dbo.sysmail_add_profileaccount_sp 
+      @profile_name = 'SQLServer',
+      @account_name = 'SQLServer', 
+      @sequence_number = 1 ; 
+END  
+
+
+
+EXEC msdb.dbo.sysmail_update_principalprofile_sp
+@principal_name = 'public',
+@profile_name = 'SQLServer',
+@is_default = '1';
