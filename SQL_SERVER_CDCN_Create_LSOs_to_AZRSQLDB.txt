@@ -1,0 +1,56 @@
+--ON TARGET (logical) SERVER, master DATABASE:
+--(authenticate using azrsqladmin@cdc.com) --pw: ZA7ig9s?apHOzlfRIsaK
+
+CREATE LOGIN cms_admin WITH PASSWORD = 'f4rT#&G3uT!!' 
+GO
+
+--ON TARGET (logical) SERVER, USER DATABASE:
+
+CREATE USER cms_admin 
+FOR LOGIN cms_admin
+WITH DEFAULT_SCHEMA = dbo
+GO
+EXEC sp_addrolemember N'db_owner', N'cms_admin'
+GO
+
+
+--ON CMS INSTANCE
+
+USE [master]
+GO
+EXEC master.dbo.sp_addlinkedserver @server = N'CMS_u2-PROD_U2Role', @srvproduct=N'', @provider=N'SQLOLEDB', @datasrc=N'u2-sql-prod.database.windows.net', @catalog=N'U2Role'
+
+GO
+EXEC master.dbo.sp_serveroption @server=N'CMS_u2-PROD_U2Role', @optname=N'collation compatible', @optvalue=N'true'
+GO
+EXEC master.dbo.sp_serveroption @server=N'CMS_u2-PROD_U2Role', @optname=N'data access', @optvalue=N'true'
+GO
+EXEC master.dbo.sp_serveroption @server=N'CMS_u2-PROD_U2Role', @optname=N'dist', @optvalue=N'false'
+GO
+EXEC master.dbo.sp_serveroption @server=N'CMS_u2-PROD_U2Role', @optname=N'pub', @optvalue=N'false'
+GO
+EXEC master.dbo.sp_serveroption @server=N'CMS_u2-PROD_U2Role', @optname=N'rpc', @optvalue=N'true'
+GO
+EXEC master.dbo.sp_serveroption @server=N'CMS_u2-PROD_U2Role', @optname=N'rpc out', @optvalue=N'true'
+GO
+EXEC master.dbo.sp_serveroption @server=N'CMS_u2-PROD_U2Role', @optname=N'sub', @optvalue=N'false'
+GO
+EXEC master.dbo.sp_serveroption @server=N'CMS_u2-PROD_U2Role', @optname=N'connect timeout', @optvalue=N'0'
+GO
+EXEC master.dbo.sp_serveroption @server=N'CMS_u2-PROD_U2Role', @optname=N'collation name', @optvalue=null
+GO
+EXEC master.dbo.sp_serveroption @server=N'CMS_u2-PROD_U2Role', @optname=N'lazy schema validation', @optvalue=N'false'
+GO
+EXEC master.dbo.sp_serveroption @server=N'CMS_u2-PROD_U2Role', @optname=N'query timeout', @optvalue=N'0'
+GO
+EXEC master.dbo.sp_serveroption @server=N'CMS_u2-PROD_U2Role', @optname=N'use remote collation', @optvalue=N'true'
+GO
+EXEC master.dbo.sp_serveroption @server=N'CMS_u2-PROD_U2Role', @optname=N'remote proc transaction promotion', @optvalue=N'true'
+GO
+USE [master]
+GO
+EXEC master.dbo.sp_addlinkedsrvlogin @rmtsrvname = N'CMS_u2-PROD_U2Role', @locallogin = NULL , @useself = N'False', @rmtuser = N'cms_admin', @rmtpassword = N'f4rT#&G3uT!!'
+GO
+
+
+
