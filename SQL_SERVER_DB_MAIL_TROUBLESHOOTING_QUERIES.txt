@@ -1,0 +1,20 @@
+select top 500 a.mailitem_id, a.profile_id, a.send_request_date, b.event_type, b.description, a.recipients, a.subject, a.body, a.send_request_user 
+from msdb..sysmail_sentitems a
+join msdb..sysmail_event_log b
+on a.mailitem_id = b.mailitem_id
+order by mailitem_id desc
+
+
+select top 500 a.mailitem_id, a.profile_id, a.send_request_date, b.event_type, b.description, a.recipients, a.subject, a.body, a.send_request_user 
+from msdb..sysmail_faileditems a
+join msdb..sysmail_event_log b
+on a.mailitem_id = b.mailitem_id
+order by mailitem_id desc
+
+
+select top 500 a.mailitem_id, a.profile_id, a.send_request_date, b.event_type, b.description, a.recipients, a.subject, a.body, a.send_request_user 
+from msdb..sysmail_unsentitems a
+join msdb..sysmail_event_log b
+on a.mailitem_id = b.mailitem_id
+order by mailitem_id desc
+
