@@ -1,0 +1,269 @@
+/**************************************************/
+/*
+
+VARIABLES PER SERVER:
+
+	db_health_status_temp_SERVERNAME
+	#LSOServerName_SERVERNAME
+	#db_health_status_temp_SERVERNAME
+	CMS_SERVERNAME
+	@ServerName =  'SERVERNAME'
+
+*/
+/**************************************************/
+
+/* Initialize Run */
+DROP TABLE IF EXISTS  cdcn_dba_utilities..db_health_status_temp_AZRSQLC01;
+DROP TABLE IF EXISTS #db_health_status_temp_AZRSQLC01;
+DROP TABLE IF EXISTS #LSOServerName_AZRSQLC01;
+
+
+/* Capture results, dump to table that is retained between runs for troubleshooting / debugging */
+SELECT   
+@@SERVERNAME AS [SERVER_NAME],
+a.name AS [DATABASE_NAME],
+'BACKUP_TYPE' = 
+CASE 
+	WHEN b.type = 'D' 
+		THEN 'FULL DATABASE'
+	WHEN b.type = 'L'
+		THEN 'TRANSACTION LOG'
+	WHEN b.type IS NULL
+		THEN 'NOT APPLICABLE'
+	ELSE b.type
+END,
+MAX(b.backup_finish_date) AS [BACKUP_FINISH_DATE], 
+'AG_STATUS' = 
+CASE 
+	WHEN a.replica_id IS NULL 
+		THEN 'NOT SYNCHRONIZED'
+	ELSE 'SYNCHRONIZED'
+END,
+'DB_OWNER_NAME' = 
+CASE
+	WHEN suser_sname(a.owner_sid) IS NULL
+		THEN 'CHECK LOCAL SERVER'
+	ELSE suser_sname(a.owner_sid)
+END,
+		 a.recovery_model_desc AS [DB_RECOVERY_MODEL],
+		 a.user_access_desc AS [DATABASE_STATE]
+INTO cdcn_dba_utilities..db_health_status_temp_AZRSQLC01
+FROM     CMS_AZRSQLC01.master.sys.databases a
+         LEFT OUTER JOIN CMS_AZRSQLC01.msdb.dbo.backupset b
+         ON       b.database_name = a.name
+         AND      b.type          in ('D','L')
+WHERE    a.name not in ('cdcn_dba_utilities', 'tempdb')
+
+GROUP BY a.name, b.type, a.replica_id, a.owner_sid, a.user_access_desc, a.recovery_model_desc
+ORDER BY a.name, b.type, a.replica_id, backup_finish_date DESC
+
+
+DROP TABLE IF EXISTS #LSOServerName_AZRSQLC01;
+
+/* Create temp table containing the name of the target server */
+CREATE TABLE #LSOServerName_AZRSQLC01
+([SERVER_NAME] [varchar](max))
+INSERT INTO #LSOServerName_AZRSQLC01
+EXEC CMS_AZRSQLC01.[master].sys.sp_executesql N'SELECT @@SERVERNAME;'
+
+/* Update results table with the name of the target server */
+UPDATE cdcn_dba_utilities..db_health_status_temp_AZRSQLC01 
+SET [SERVER_NAME] = (SELECT SERVER_NAME FROM #LSOServerName_AZRSQLC01)
+
+
+
+DROP TABLE IF EXISTS #db_health_status_temp_AZRSQLC01
+
+/* Create temp table that is used for email formatting / expressions */
+CREATE TABLE #db_health_status_temp_AZRSQLC01
+( [SERVER_NAME] [varchar](max),
+  [DATABASE_NAME]  [varchar](max),
+  [BACKUP_TYPE] [varchar](max),
+  [BACKUP_FINISH_DATE] [varchar](max),
+  [AG_STATUS]  [varchar](max),
+  [DB_OWNER_NAME] [varchar](max),
+  [DB_RECOVERY_MODEL] [varchar](max),
+  [DATABASE_STATE] [varchar](max),
+  [ReportDate] [varchar](max)
+)
+
+
+
+INSERT INTO #db_health_status_temp_AZRSQLC01
+SELECT
+   [SERVER_NAME]
+  ,[DATABASE_NAME]
+  ,[BACKUP_TYPE]
+  ,[BACKUP_FINISH_DATE]
+  ,[AG_STATUS]
+  ,[DB_OWNER_NAME]
+  ,[DB_RECOVERY_MODEL]
+  ,[DATABASE_STATE]
+  ,getdate() 
+--  ,CONVERT(DATE, CONVERT(VARCHAR(20), DATEADD(DAY, -DATEDIFF(DAY, 0, [LastBatch]) % 7, [LastBatch]), 120)) 
+FROM [cdcn_dba_utilities].[dbo].[db_health_status_temp_AZRSQLC01]
+WHERE [BACKUP_TYPE] IS NOT NULL
+ORDER BY [DATABASE_NAME], [BACKUP_TYPE], [BACKUP_FINISH_DATE], [AG_STATUS]
+
+
+
+-- define CSS inside the HTML head section.  These variables are used in the XML formatting.
+DECLARE @body VARCHAR(MAX)= '
+<html>
+<head> <style>
+ #g {color: green;}
+ #r {color: red; font-weight: bold}
+ #odd {background-color: lightgrey}
+</style> </head>';
+ 
+DECLARE @i INT = 0
+, @pos INT
+, @s VARCHAR(MAX)
+, @ts VARCHAR(MAX)
+, @xml VARCHAR(MAX);
+
+DECLARE @recipients VARCHAR(MAX) = 'StephenM@consumerdirectcare.com; JohnTa@consumerdirectcare.com; BrianMa@consumerdirectcare.com' 
+DECLARE @ServerName VARCHAR(255)
+DECLARE @MailSubject VARCHAR(255)
+DECLARE @CombinedSubject VARCHAR(255)
+
+
+
+--Set variables
+SET @ServerName =  'AZRSQLC01'
+SET @MailSubject = '[FOR INFORMATION / REVIEW] - DATABASE HEALTH STATUS - ' + @ServerName
+SET @CombinedSubject = @ServerName + @MailSubject
+
+
+
+--get core xml string
+
+SET @xml = CAST((SELECT
+ [SERVER_NAME] AS 'td'
+, ''
+,CASE WHEN [DB_RECOVERY_MODEL] = 'FULL'
+		AND [BACKUP_TYPE] LIKE '%TRANSACTION LOG%'
+		AND [BACKUP_FINISH_DATE] <= getdate()-1
+		THEN 'zr'+CAST([DATABASE_NAME] AS VARCHAR(255))
+	 ELSE CAST([DATABASE_NAME] AS VARCHAR(255))
+ END AS 'td'
+, ''
+,CASE WHEN [DB_RECOVERY_MODEL] = 'FULL'
+		AND [BACKUP_TYPE] LIKE '%TRANSACTION LOG%'
+		AND [BACKUP_FINISH_DATE] <= getdate()-1
+		THEN 'zr'+CAST([BACKUP_TYPE] AS VARCHAR(255))
+	 ELSE CAST([BACKUP_TYPE] AS VARCHAR(255))
+ END AS 'td'
+,''
+,CASE WHEN [DB_RECOVERY_MODEL] = 'FULL'
+		AND [BACKUP_TYPE] LIKE '%TRANSACTION LOG%'
+		AND [BACKUP_FINISH_DATE] <= getdate()-1
+		THEN 'zr'+CAST([BACKUP_FINISH_DATE] AS VARCHAR(255))
+	 ELSE CAST([BACKUP_FINISH_DATE] AS VARCHAR(255))
+ END AS 'td'
+, ''
+,[AG_STATUS] AS 'td'
+,''
+,[DB_OWNER_NAME] AS 'td'
+,''
+,CASE WHEN [DB_RECOVERY_MODEL] = 'FULL'
+		AND [BACKUP_TYPE] LIKE '%TRANSACTION LOG%'
+		AND [BACKUP_FINISH_DATE] <= getdate()-1
+		THEN 'zr'+CAST([DB_RECOVERY_MODEL] AS VARCHAR(255))
+	 ELSE CAST([DB_RECOVERY_MODEL] AS VARCHAR(255))
+ END AS 'td'
+, ''
+,CASE WHEN [DATABASE_STATE] NOT LIKE '%MULTI%USER%'
+		THEN 'zr'+CAST([DATABASE_STATE] AS VARCHAR(255))
+	 ELSE CAST([DATABASE_STATE] AS VARCHAR(255))
+ END AS 'td'
+, ''
+,[ReportDate] AS 'td'
+,''
+FROM  #db_health_status_temp_AZRSQLC01
+ORDER BY [DATABASE_NAME], [BACKUP_TYPE]
+FOR XML PATH('tr'), ELEMENTS ) AS NVARCHAR(MAX));
+
+
+
+
+--EVALUATE CASE STATEMENTS.  COLOR TEXT FONT ACCORDINGLY. 
+SET @xml=REPLACE(@xml, '<td>zg', '<td id="g">'); -- Green
+SET @xml=REPLACE(@xml, '<td>zr', '<td id="r">'); -- Red
+
+
+--ZEBRA STRIPE THE ROWS IN THE RESULT SET 
+SELECT @s = ''
+, @pos = CHARINDEX('<tr>', @xml, 4);
+ 
+WHILE(@pos > 0)
+BEGIN
+   SET @i += 1;
+   SET @ts = SUBSTRING(@xml, 1, @pos-1)
+   IF(@i % 2 = 1)
+      set @ts = REPLACE(@ts, '<tr>', '<tr id="odd">');
+   SET @s += @ts;
+   SET @xml = SUBSTRING(@xml, @pos, LEN(@xml));
+   SET @pos =  CHARINDEX('<tr>', @xml, 4);
+END -- while
+-- handling the last piece
+SET @i +=1;
+SET @ts = @xml;
+IF(@i % 2 = 1)
+   SET @ts = REPLACE(@ts, '<tr>', '<tr id="odd">');
+SET @s += @ts;
+
+--WRITE RESULT SET TO EMAIL BODY
+SET @body +='<body><H3><U>Database Health Attributes</U></H3>
+
+<H3>USAGE:</H3>  Use this report to gain a convenient level of insight into some of the more important aspects of critical databases without having to log into the system
+
+<BR><BR>
+
+<BR><BR>
+<U>REPORT DESCRIPTION:</U> 
+<BR>
+
+
+This report displays information about databases on ' + @ServerName + 
+
+' as they existed when this report was generated.  
+
+NOTE:  THE REPORT DATE FIELD INHERITS THE (UTC) SYSTEM DATE OF THE MACHINE THAT RAN IT
+<BR><BR>
+
+
+<BR><BR>
+<table border = 1> 
+<tr>
+<th> Server Name </th> 
+<th> Database Name </th> 
+<th> Backup Type </th>
+<th> Backup Finish Date </th> 
+<th> AG Status </th>
+<th> DB Owner Name </th> 
+<th> DB Recovery Model </th> 
+<th> DB Access State </th> 
+<th> Report Date </th> 
+</tr>' 
++ @s+'</table> </body> </html>
+
+<BR><BR>
+Regards,
+<BR>
+CDCN DBA Team';
+ 
+
+
+EXEC msdb.dbo.sp_send_dbmail
+@profile_name = 'SQLServer'
+--,@recipients = @recipients
+,@recipients = 'StephenM@consumerdirectcare.com' --DEBUGGING
+,@subject = @MailSubject
+,@body = @body
+,@body_format ='HTML';
+
+/* Clean up temp tables */
+DROP TABLE IF EXISTS #db_health_status_temp_AZRSQLC01;
+DROP TABLE IF EXISTS #LSOServerName_AZRSQLC01;
+
