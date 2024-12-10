@@ -1,0 +1,11 @@
+
+SELECT 
+a.name AS [OBJECT_NAME]
+,b.name AS [USER_NAME]
+,a.crdate AS [CREATE_DATE]
+FROM sysobjects a
+	JOIN sysusers b
+		ON a.uid = b.uid
+WHERE a.name like 'AD%'
+ORDER BY a.name
+GO
