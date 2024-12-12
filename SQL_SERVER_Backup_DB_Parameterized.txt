@@ -1,0 +1,44 @@
+/***** FULL DATABASE BACKUP *****/
+DECLARE @DestinationPath varchar(max)
+DECLARE @DatabaseName varchar(max)
+DECLARE @FileNameDynamicDate varchar(max)
+
+SET @DestinationPath = 'X:\MSSQL\Backup\'
+SET @DatabaseName = 'cdcn_dba_full_recovery_test'
+SELECT @FileNameDynamicDate = (SELECT @DestinationPath + @DatabaseName + '_' + convert(varchar(max),getdate(),112) + '.bak') --yyyymmdd format
+
+
+
+BACKUP DATABASE @DatabaseName TO DISK=@FileNameDynamicDate 
+WITH NOFORMAT
+, INIT
+, SKIP
+, NOREWIND
+, NOUNLOAD
+, COMPRESSION
+, STATS=10
+GO
+
+
+
+/***** TRANSACTION LOG BACKUP *****/
+DECLARE @DestinationPath varchar(max)
+DECLARE @DatabaseName varchar(max)
+DECLARE @FileNameDynamicDate varchar(max)
+
+SET @DestinationPath = 'X:\MSSQL\Backup\'
+SET @DatabaseName = 'cdcn_dba_full_recovery_test'
+SELECT @FileNameDynamicDate = (SELECT @DestinationPath + @DatabaseName + '_' + replace(convert(varchar(8), getdate(), 112)+convert(varchar(8), getdate(), 114), ':','')  + '.trn') --yyyymmdd format
+
+
+
+BACKUP LOG @DatabaseName TO DISK=@FileNameDynamicDate 
+WITH NOFORMAT
+, INIT
+, SKIP
+, NOREWIND
+, NOUNLOAD
+, COMPRESSION
+, STATS=10
+GO
+
