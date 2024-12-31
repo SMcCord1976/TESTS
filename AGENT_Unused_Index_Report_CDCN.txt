@@ -1,0 +1,325 @@
+USE [msdb]
+GO
+
+/****** Object:  Job [[DBA] - Unused Index Report - TEMPLATE]    Script Date: 12/31/2024 12:50:38 PM ******/
+BEGIN TRANSACTION
+DECLARE @ReturnCode INT
+SELECT @ReturnCode = 0
+/****** Object:  JobCategory [[Uncategorized (Local)]]    Script Date: 12/31/2024 12:50:39 PM ******/
+IF NOT EXISTS (SELECT name FROM msdb.dbo.syscategories WHERE name=N'[Uncategorized (Local)]' AND category_class=1)
+BEGIN
+EXEC @ReturnCode = msdb.dbo.sp_add_category @class=N'JOB', @type=N'LOCAL', @name=N'[Uncategorized (Local)]'
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+
+END
+
+DECLARE @jobId BINARY(16)
+EXEC @ReturnCode =  msdb.dbo.sp_add_job @job_name=N'[DBA] - Unused Index Report - TEMPLATE', 
+		@enabled=1, 
+		@notify_level_eventlog=0, 
+		@notify_level_email=0, 
+		@notify_level_netsend=0, 
+		@notify_level_page=0, 
+		@delete_level=0, 
+		@description=N'Identify potentially unused indexes on Linked Server databases.
+
+Ensure that the Linked Server Property "Enable Promotion of Distributed transaction is set to FALSE".', 
+		@category_name=N'[Uncategorized (Local)]', 
+		@owner_login_name=N'sa', @job_id = @jobId OUTPUT
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+/****** Object:  Step [Generate and send report]    Script Date: 12/31/2024 12:50:40 PM ******/
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'Generate and send report', 
+		@step_id=1, 
+		@cmdexec_success_code=0, 
+		@on_success_action=1, 
+		@on_success_step_id=0, 
+		@on_fail_action=2, 
+		@on_fail_step_id=0, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'/**************************************************/
+/*
+
+VARIABLES PER SERVER:
+
+	CMS_SERVERNAME
+	DATABASE_NAME
+	@ServerName1 = ''[SERVERNAME]''
+
+*/
+/**************************************************/
+
+
+--Initialize Run
+DROP TABLE IF EXISTS #TempUnusedIndexes_DATABASE_NAME
+
+CREATE TABLE #TempUnusedIndexes_DATABASE_NAME
+( [Server_Name] [varchar](max),
+  [DatabaseName] [varchar](max),
+  [Object_Name]  [varchar](max),
+  [Index_Name]  [varchar](max),
+  [Reads] [varchar](max),
+  [Writes] [varchar](max),
+  [Table_Rows] [varchar](max),
+  [Reads_Per_Writes] [varchar](max),
+  [Drop_Index_Statement] [varchar](max),
+  [QueryDate] [varchar](max)
+)
+
+
+--Identify Unused Indexes from Linked Server Object database
+
+DECLARE @Script nvarchar(max) = 
+N''USE [DATABASE_NAME];
+
+SELECT 
+	@@SERVERNAME as ''''Server_Name''''
+	,db_name () as ''''DatabaseName''''
+	,o.NAME AS ''''Object_Name''''
+	,i.NAME AS ''''Index_Name''''
+	,dm_ius.user_seeks + dm_ius.user_scans + dm_ius.user_lookups AS ''''Reads''''
+	,dm_ius.user_updates AS ''''Writes''''
+	,p.TableRows AS ''''Table_Rows''''
+	,CASE 
+		WHEN dm_ius.user_updates < 1
+			THEN 100
+		ELSE 1.00 * (dm_ius.user_seeks + dm_ius.user_scans + dm_ius.user_lookups) / dm_ius.user_updates
+		END AS Reads_Per_Writes
+, ''''DROP INDEX '''' + QUOTENAME(i.name)
++ '''' ON '''' + QUOTENAME(s.name) + ''''.''''
++ QUOTENAME(OBJECT_NAME(dm_ius.OBJECT_ID)) AS ''''drop statement''''
+,getdate() as ''''QueryDate''''
+FROM sys.dm_db_index_usage_stats dm_ius
+INNER JOIN sys.indexes i 
+	ON i.index_id = dm_ius.index_id 
+	AND dm_ius.OBJECT_ID = i.OBJECT_ID
+INNER JOIN sys.objects o 
+	ON dm_ius.OBJECT_ID = o.OBJECT_ID
+INNER JOIN sys.schemas s 
+	ON o.schema_id = s.schema_id
+INNER JOIN (SELECT SUM(p.rows) TableRows, p.index_id, p.OBJECT_ID
+FROM sys.partitions p GROUP BY p.index_id, p.OBJECT_ID) p
+	ON p.index_id = dm_ius.index_id AND dm_ius.OBJECT_ID = p.OBJECT_ID
+	WHERE OBJECTPROPERTY(dm_ius.OBJECT_ID,''''IsUserTable'''') = 1
+	AND dm_ius.database_id = DB_ID()
+	AND i.type_desc = ''''nonclustered''''
+	AND i.is_primary_key = 0
+	AND i.is_unique_constraint = 0
+ORDER BY (dm_ius.user_seeks + dm_ius.user_scans + dm_ius.user_lookups) ASC
+''
+
+INSERT INTO #TempUnusedIndexes_DATABASE_NAME
+EXECUTE (@Script) AT CMS_SERVERNAME
+
+
+
+/* Count the number of unused indexes identified */
+
+
+DECLARE @CountValue INT
+SELECT @CountValue = COUNT(*)
+FROM #TempUnusedIndexes_DATABASE_NAME
+
+--PRINT @CountValue
+
+IF (@CountValue = 0)
+BEGIN 
+
+--Declare variables
+DECLARE @ServerName1 VARCHAR(255)
+DECLARE @DatabaseName1 VARCHAR(255)
+DECLARE @MailSubject VARCHAR(255)
+DECLARE @CombinedSubject VARCHAR(255)
+--DECLARE @xml NVARCHAR(MAX) --XML VARIABLE DECLARED IN ACCOUNTS DETECTED SECTION
+DECLARE @blankbody NVARCHAR(MAX)
+
+--Set variables
+SET @ServerName1 = ''['' + @@SERVERNAME + '']''
+SET @DatabaseName1 = ''.['' + DB_NAME() + '']''
+SET @MailSubject = ''[FOR INFORMATION / REVIEW] - Potential Unused Index Report ''
+SET @CombinedSubject = @MailSubject + @ServerName1 + @DatabaseName1
+
+
+SET @blankbody = ''NO UNUSED INDEXES DETECTED ON THE DATABASE
+
+~*~NFAR~*~''
+
+--Trigger the email 
+EXEC msdb.dbo.sp_send_dbmail
+	@profile_name = ''SQLServer''
+--,	@recipients = ''stephenm@consumerdirectcare.com; stephenm@consumerdirectcare.com''
+,	@recipients = ''stephenm@consumerdirectcare.com''
+,	@subject = @CombinedSubject
+,	@body = @blankbody
+,   @body_format = ''HTML'';
+
+END
+
+ELSE 
+
+BEGIN
+
+-- define CSS inside the HTML head section
+DECLARE @body VARCHAR(MAX)= ''
+<html>
+<head> <style>
+ #g {color: green;}
+ #r {color: red;}
+ #orng {color: orange;}
+ #odd {background-color: lightgrey}
+</style> </head>'';
+ 
+DECLARE @i INT = 0
+, @pos INT
+, @s VARCHAR(MAX)
+, @ts VARCHAR(MAX)
+, @xml VARCHAR(MAX);
+
+
+DECLARE @recipients VARCHAR(MAX) = ''stephenm@consumerdirectcare.com; stephenm@consumerdirectcare.com'' 
+--DECLARE @ServerName VARCHAR(255)
+--DECLARE @MailSubject VARCHAR(255)
+--DECLARE @CombinedSubject VARCHAR(255)
+
+
+--Set variables
+--SET @ServerName1 = ''['' + @@SERVERNAME + '']''
+SET @ServerName1 = ''[SERVERNAME]'' --Need to hardcode server name for LSOs
+SET @DatabaseName1 = ''.['' + DB_NAME() + '']''
+SET @MailSubject = ''[FOR INFORMATION / REVIEW] - Potential Unused Index Report ''
+SET @CombinedSubject = @MailSubject + @ServerName1 + @DatabaseName1
+
+
+ 
+--get core xml string
+SET @xml = CAST(( SELECT 
+[Server_Name] AS ''td''
+,''''
+,[DatabaseName] AS ''td''
+,''''
+,[Object_Name] AS ''td''
+,''''
+,[Index_Name] AS ''td''
+,''''
+,[Reads] AS ''td''
+,''''
+,[Writes] AS ''td''
+,''''
+,[Table_Rows] AS ''td''
+,''''
+,[Reads_Per_Writes] AS ''td''
+,''''
+,[Drop_Index_Statement] AS ''td''
+,''''
+,[QueryDate] AS ''td''
+,''''
+FROM  #TempUnusedIndexes_DATABASE_NAME
+ORDER BY [Reads_Per_Writes]
+FOR XML PATH(''tr''), ELEMENTS ) AS NVARCHAR(MAX));
+
+
+--EVALUATE CASE STATEMENT.  COLOR TEXT FONT ACCORDINGLY. 
+SET @xml=REPLACE(@xml, ''<td>zg'', ''<td id="g">''); -- Green
+SET @xml=REPLACE(@xml, ''<td>zr'', ''<td id="r">''); -- Red
+SET @xml=REPLACE(@xml, ''<td>zorng'', ''<td id="orng">''); -- Orange
+
+--ZEBRA STRIPE THE ROWS IN THE RESULT SET 
+SELECT @s = ''''
+, @pos = CHARINDEX(''<tr>'', @xml, 4);
+ 
+WHILE(@pos > 0)
+BEGIN
+   SET @i += 1;
+   SET @ts = SUBSTRING(@xml, 1, @pos-1)
+   IF(@i % 2 = 1)
+      set @ts = REPLACE(@ts, ''<tr>'', ''<tr id="odd">'');
+   SET @s += @ts;
+   SET @xml = SUBSTRING(@xml, @pos, LEN(@xml));
+   SET @pos =  CHARINDEX(''<tr>'', @xml, 4);
+END -- while
+-- handling the last piece
+SET @i +=1;
+SET @ts = @xml;
+IF(@i % 2 = 1)
+   SET @ts = REPLACE(@ts, ''<tr>'', ''<tr id="odd">'');
+SET @s += @ts;
+
+--WRITE RESULT SET TO EMAIL BODY
+SET @body +=
+''<body>
+<H3>Potential Unused Indexes</H3>
+<BR>
+This should be step ONE of the Index Tuning Lifecycle:
+
+
+<BR><BR>
+Indexes are <b>most</b> useful for the retrieval (reading) of data.  The output of this query is SQL Server essentially looking at the statistics of all the queries run since the last server reboot, and outlining 
+which indexes have a low read vs. write ratio.  
+
+
+Utilize the results generated from this process as an indication of where to start dedicating research/development efforts, 
+*NOT* as a hard and fast directive to remove the indexes as suggested without further research
+<BR><BR>
+
+<BR>
+<table border = 1> 
+<tr>
+
+<th> SERVER NAME </th> 
+<th> DATABASE NAME </th> 
+<th> OBJECT NAME </th>
+<th> INDEX NAME </th> 
+<th> READS </th>
+<th> WRITES </th> 
+<th> ROWS </th>
+<th> READS_PER_WRITES </th> 
+<th> DROP_INDEX_STATEMENT </th>
+<th> QUERY DATE </th>
+
+
+</tr>'' 
++ @s+''</table> </body> </html>
+<BR><BR>
+Regards,
+<BR>
+CDCN Database Administration
+<BR><BR><BR><BR>
+
+'' ;
+ 
+
+EXEC msdb.dbo.sp_send_dbmail
+@profile_name = ''SQLServer''
+--,@recipients = @recipients
+,@recipients = ''stephenm@consumerdirectcare.com'' --DEBUGGING
+,@subject = @MailSubject
+,@body = @body
+,@body_format =''HTML''
+END
+
+
+DROP TABLE IF EXISTS #TempUnusedIndexes_DATABASE_NAME
+
+
+
+
+
+
+
+', 
+		@database_name=N'master', 
+		@flags=0
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_update_job @job_id = @jobId, @start_step_id = 1
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_add_jobserver @job_id = @jobId, @server_name = N'(local)'
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+COMMIT TRANSACTION
+GOTO EndSave
+QuitWithRollback:
+    IF (@@TRANCOUNT > 0) ROLLBACK TRANSACTION
+EndSave:
+GO
+
+
