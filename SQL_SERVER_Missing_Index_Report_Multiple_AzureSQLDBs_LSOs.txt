@@ -1,0 +1,337 @@
+/**************************************************/
+/* VARIABLES PER SERVER:
+    Centralized Server: CMS_TEST
+    LSOs: CMS_u2_PROD_db1, CMS_u2_PROD_db2, etc.
+    Azure DBs: U2Billing_cdak, etc.
+*/
+/**************************************************/
+-- Create permanent table to store missing index recommendations
+IF NOT EXISTS (
+    SELECT *
+    FROM sys.tables
+    WHERE name = 'MissingIndexRecommendations'
+)
+BEGIN
+    CREATE TABLE MissingIndexRecommendations (
+        Id INT IDENTITY(1,1) PRIMARY KEY,
+        Server_Name NVARCHAR(128),
+        DatabaseName NVARCHAR(128),
+        Object_Name NVARCHAR(128),
+        Avg_Estimated_Impact DECIMAL(18,2),
+        Last_User_Seek DATETIME,
+        Index_Create_Statement NVARCHAR(MAX),
+        GeneratedDate DATETIME DEFAULT GETDATE()
+    );
+END;
+
+-- Execution log table for debugging
+DROP TABLE IF EXISTS #ExecutionLog;
+CREATE TABLE #ExecutionLog (
+    LSO_Name NVARCHAR(128),
+    RowsCollected INT,
+    ErrorMessage NVARCHAR(MAX),
+    ErrNumber INT,
+    ErrSeverity INT,
+    ErrState INT,
+    ExecutionTime DATETIME,
+    QueryText NVARCHAR(MAX)
+);
+
+-- Temp table for results
+DROP TABLE IF EXISTS #TempMissingIndexes_All;
+CREATE TABLE #TempMissingIndexes_All (
+    ServerName NVARCHAR(MAX),
+    DatabaseName NVARCHAR(MAX),
+    Object_Name NVARCHAR(MAX),
+    Avg_Estimated_Impact NVARCHAR(MAX),
+    Last_User_Seek NVARCHAR(MAX),
+    Index_Create_Statement NVARCHAR(MAX),
+    QueryDate NVARCHAR(MAX)
+);
+
+-- Table to store LSOs
+DROP TABLE IF EXISTS #LSOs;
+CREATE TABLE #LSOs (
+    LSO_Name NVARCHAR(128),
+    DB_Name NVARCHAR(128)
+);
+
+-- Populate with LSOs from sys.servers
+INSERT INTO #LSOs (LSO_Name, DB_Name)
+SELECT name, CATALOG
+FROM sys.servers
+WHERE name LIKE 'CMS_u2_PROD%'
+    AND name NOT LIKE '%_master'
+    AND is_linked = 1;
+
+DECLARE @LSO_Name NVARCHAR(128),
+        @DB_Name NVARCHAR(128),
+        @InnerScript NVARCHAR(max),
+        @QueryStmt NVARCHAR(max),
+        @RowsCollected INT;
+
+DECLARE lso_cursor CURSOR FOR
+SELECT LSO_Name, DB_Name
+FROM #LSOs;
+
+OPEN lso_cursor;
+FETCH NEXT FROM lso_cursor INTO @LSO_Name, @DB_Name;
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    BEGIN TRY
+        SET @InnerScript = N'
+            SELECT 
+                @@SERVERNAME AS ServerName,
+                ''' + @DB_Name + ''' AS DatabaseName,
+                OBJECT_NAME(dm_mid.OBJECT_ID, dm_mid.database_id) AS Object_Name,
+                FORMAT(dm_migs.avg_user_impact * (dm_migs.user_seeks + dm_migs.user_scans), ''N0'') AS Avg_Estimated_Impact,
+                ISNULL(CAST(dm_migs.last_user_seek AS nvarchar(max)), '''') AS Last_User_Seek,
+                ''CREATE INDEX IX_'' + OBJECT_NAME(dm_mid.OBJECT_ID, dm_mid.database_id) + ''_'' 
+                + REPLACE(ISNULL(dm_mid.equality_columns, ''''), '', '', ''_'') 
+                + CASE 
+                    WHEN dm_mid.inequality_columns IS NOT NULL THEN ''_'' + REPLACE(ISNULL(dm_mid.inequality_columns, ''''), '', '', ''_'') 
+                    ELSE '''' 
+                END
+                + '' ON '' + dm_mid.statement 
+                + '' ('' + ISNULL(dm_mid.equality_columns, '''') 
+                + CASE 
+                    WHEN dm_mid.inequality_columns IS NOT NULL THEN '','' + dm_mid.inequality_columns 
+                    ELSE '''' 
+                END 
+                + '')'' 
+                + ISNULL('' INCLUDE ('' + dm_mid.included_columns + '')'', '''') AS Index_Create_Statement,
+                CAST(GETDATE() AS nvarchar(max)) AS QueryDate
+            FROM sys.dm_db_missing_index_groups dm_mig
+            INNER JOIN sys.dm_db_missing_index_group_stats dm_migs
+                ON dm_migs.group_handle = dm_mig.index_group_handle
+            INNER JOIN sys.dm_db_missing_index_details dm_mid
+                ON dm_mig.index_handle = dm_mid.index_handle
+            WHERE dm_mid.database_ID = DB_ID(''' + @DB_Name + ''')';
+
+        SET @QueryStmt = N'INSERT INTO #TempMissingIndexes_All 
+            (ServerName, DatabaseName, Object_Name, Avg_Estimated_Impact, Last_User_Seek, Index_Create_Statement, QueryDate)
+            SELECT * FROM OPENQUERY(' + QUOTENAME(@LSO_Name) + N', ''' + REPLACE(@InnerScript, '''', '''''') + N''')';
+
+        PRINT 'Executing for ' + @LSO_Name + ':';
+        PRINT @QueryStmt;
+        
+        EXEC sp_executesql @QueryStmt;
+        
+        SET @RowsCollected = @@ROWCOUNT;
+        
+        INSERT INTO #ExecutionLog 
+            (LSO_Name, RowsCollected, ErrorMessage, ErrNumber, ErrSeverity, ErrState, ExecutionTime, QueryText)
+        VALUES 
+            (@LSO_Name, @RowsCollected, NULL, NULL, NULL, NULL, GETDATE(), @QueryStmt);
+
+        -- Try to insert into permanent table with error handling
+        BEGIN TRY
+            INSERT INTO MissingIndexRecommendations 
+                (Server_Name, DatabaseName, Object_Name, Avg_Estimated_Impact, Last_User_Seek, Index_Create_Statement)
+            SELECT 
+                ServerName, 
+                DatabaseName, 
+                Object_Name, 
+                TRY_CAST(Avg_Estimated_Impact AS DECIMAL(18,2)),
+                CAST(Last_User_Seek AS DATETIME), 
+                Index_Create_Statement
+            FROM #TempMissingIndexes_All
+            WHERE DatabaseName = @DB_Name 
+                AND ServerName NOT IN (SELECT Server_Name FROM MissingIndexRecommendations WHERE DatabaseName = @DB_Name);
+        END TRY
+        BEGIN CATCH
+            INSERT INTO #ExecutionLog 
+                (LSO_Name, RowsCollected, ErrorMessage, ErrNumber, ErrSeverity, ErrState, ExecutionTime, QueryText)
+            VALUES 
+                (@LSO_Name, 0, 'Permanent table insert failed: ' + ERROR_MESSAGE(), ERROR_NUMBER(), ERROR_SEVERITY(), ERROR_STATE(), GETDATE(), 'INSERT INTO MissingIndexRecommendations');
+            PRINT 'Permanent table insert error for ' + @LSO_Name + ': ' + ERROR_MESSAGE();
+        END CATCH;
+    END TRY
+    BEGIN CATCH
+        SET @RowsCollected = 0;
+        INSERT INTO #ExecutionLog 
+            (LSO_Name, RowsCollected, ErrorMessage, ErrNumber, ErrSeverity, ErrState, ExecutionTime, QueryText)
+        VALUES 
+            (@LSO_Name, @RowsCollected, ERROR_MESSAGE(), ERROR_NUMBER(), ERROR_SEVERITY(), ERROR_STATE(), GETDATE(), @QueryStmt);
+        PRINT 'Error querying ' + @LSO_Name + ': ' + ERROR_MESSAGE();
+    END CATCH;
+
+    FETCH NEXT FROM lso_cursor INTO @LSO_Name, @DB_Name;
+END;
+
+CLOSE lso_cursor;
+DEALLOCATE lso_cursor;
+
+-- Diagnostic output
+PRINT '=== Contents of #TempMissingIndexes_All ===';
+SELECT * FROM #TempMissingIndexes_All;
+PRINT 'Rows collected: ' + CAST(@@ROWCOUNT AS NVARCHAR(10));
+
+PRINT '=== Execution Log ===';
+SELECT 
+    LSO_Name,
+    RowsCollected,
+    ErrorMessage,
+    ErrNumber,
+    ErrSeverity,
+    ErrState,
+    ExecutionTime,
+    QueryText
+FROM #ExecutionLog;
+
+PRINT '=== Linked Servers Checked ===';
+SELECT LSO_Name, DB_Name FROM #LSOs;
+
+-- Email report generation
+DECLARE @CountValue INT;
+SELECT @CountValue = COUNT(*) FROM #TempMissingIndexes_All;
+
+IF (@CountValue = 0)
+BEGIN
+    DECLARE @ServerName1 VARCHAR(255) = '[U2_PROD]',
+            @MailSubject VARCHAR(255) = '[FOR INFORMATION / REVIEW] - Potential Missing Index Report (All DBs)',
+            @CombinedSubject VARCHAR(255),
+            @blankbody NVARCHAR(MAX);
+
+    SET @CombinedSubject = @MailSubject + @ServerName1;
+    SET @blankbody = 'NO MISSING INDEX RECOMMENDATIONS DETECTED ACROSS ALL DATABASES<br><br>~*~NFAR~*~';
+
+    EXEC msdb.dbo.sp_send_dbmail @profile_name = 'SQLServer',
+                                 @recipients = 'stephenm@consumerdirectcare.com',
+                                 @subject = @CombinedSubject,
+                                 @body = @blankbody,
+                                 @body_format = 'HTML';
+END
+ELSE
+BEGIN
+    DECLARE @body VARCHAR(MAX) = '
+    <html>
+    <head> 
+    <style>
+        table { border-collapse: collapse; }
+        th, td { padding: 8px; text-align: left; overflow: hidden; white-space: nowrap; }
+        th { background-color: #f2f2f2; }
+        #g { color: green; }
+        #r { color: red; }
+        #orng { color: orange; }
+        #odd { background-color: lightsteelblue; }
+    </style> 
+    </head>';
+    DECLARE @i INT = 0,
+            @pos INT,
+            @s VARCHAR(MAX),
+            @ts VARCHAR(MAX),
+            @xml VARCHAR(MAX);
+
+    SET @ServerName1 = '[U2_PROD]';
+    SET @MailSubject = '[FOR INFORMATION / REVIEW] - Potential Missing Index Report ';
+    SET @CombinedSubject = @MailSubject + @ServerName1;
+
+    -- Generate XML string with TOP 3 per database, handling NULLs
+    SET @xml = CAST((
+        SELECT ServerName AS 'td', '',
+               DatabaseName AS 'td', '',
+               Object_Name AS 'td', '',
+               ISNULL(Avg_Estimated_Impact, '0') AS 'td', '',
+               ISNULL(Last_User_Seek, '') AS 'td', '',
+               ISNULL(Index_Create_Statement, '') AS 'td', '',
+               ISNULL(QueryDate, '') AS 'td', ''
+        FROM (
+            SELECT *,
+                   ROW_NUMBER() OVER (PARTITION BY DatabaseName ORDER BY TRY_CAST(Avg_Estimated_Impact AS DECIMAL(18,2)) DESC) AS rn
+            FROM #TempMissingIndexes_All
+        ) t
+        WHERE rn <= 3
+        ORDER BY TRY_CAST(Avg_Estimated_Impact AS DECIMAL(18,2)) DESC
+        FOR XML PATH('tr'), ELEMENTS
+    ) AS NVARCHAR(MAX));
+
+    -- Zebra striping
+    SELECT @s = '', @pos = CHARINDEX('<tr>', @xml, 4);
+    WHILE (@pos > 0)
+    BEGIN
+        SET @i += 1;
+        SET @ts = SUBSTRING(@xml, 1, @pos - 1);
+        IF (@i % 2 = 1)
+            SET @ts = REPLACE(@ts, '<tr>', '<tr id="odd">');
+        SET @s += @ts;
+        SET @xml = SUBSTRING(@xml, @pos, LEN(@xml));
+        SET @pos = CHARINDEX('<tr>', @xml, 4);
+    END;
+
+    SET @i += 1;
+    SET @ts = @xml;
+    IF (@i % 2 = 1)
+        SET @ts = REPLACE(@ts, '<tr>', '<tr id="odd">');
+    SET @s += @ts;
+
+    -- Build email body
+    SET @body += '
+    <body>
+    <h3>Potential Missing Indexes (All Databases)</h3>
+    <br>
+    This should be step ONE of the Index Tuning Lifecycle:
+    <br><br>
+    Indexes are <b>most</b> useful for the retrieval <i>(reading)</i> of data. The output of this query is SQL Server essentially looking at the statistics of all the queries run since the last server reboot, and outlining 
+    which indexes could improve query performance based on an estimated impact score.
+    <br><br>
+    Utilize the results generated from this process as an indication of where to start dedicating research/development efforts, 
+    *NOT* as a hard and fast directive to create the indexes as suggested without comprehensive review.
+    <br><br>
+    If research efforts indicate that a missing index should be created, please submit a request to the DBA Team containing the following information:
+    <br><br>
+    <b>DATABASE NAME</b> - <i>(e.g., U2Billing_cdak)</i>
+    <br>
+    <b>OBJECT NAME</b> - <i>(e.g., BillingRecords)</i>
+    <br>
+    <b>INDEX CREATE STATEMENT</b> - <i>(e.g., CREATE INDEX IX_BillingRecords...)</i>
+    <br><br>
+    <table border="1"> 
+    <tr>
+        <th style="width: 250px;">SERVER NAME</th>
+        <th style="width: 350px;">DATABASE NAME</th>
+        <th style="width: 110px;">OBJECT NAME</th>
+        <th style="width: 150px;">AVG EST. IMPACT</th>
+        <th style="width: 200px;">LAST USER SEEK</th>
+        <th style="width: 600px;">INDEX CREATE STATEMENT</th>
+        <th style="width: 250px;">QUERY DATE</th>
+    </tr>' 
+    + @s + '</table>
+    <br><br>
+    Regards,
+    <br>
+    CDCN Database Administration
+    <br><br><br><br>
+    </body></html>';
+
+    -- Send email
+    EXEC msdb.dbo.sp_send_dbmail @profile_name = 'SQLServer',
+                                 @recipients = 'stephenm@consumerdirectcare.com',
+                                 @subject = @CombinedSubject,
+                                 @body = @body,
+                                 @body_format = 'HTML';
+END;
+
+-- Final diagnostic output
+PRINT '=== Final Contents of #TempMissingIndexes_All ===';
+SELECT * FROM #TempMissingIndexes_All;
+PRINT 'Rows collected: ' + CAST(@@ROWCOUNT AS NVARCHAR(10));
+
+PRINT '=== Final Execution Log ===';
+SELECT 
+    LSO_Name,
+    RowsCollected,
+    ErrorMessage,
+    ErrNumber,
+    ErrSeverity,
+    ErrState,
+    ExecutionTime,
+    QueryText
+FROM #ExecutionLog;
+
+PRINT '=== Final Linked Servers Checked ===';
+SELECT LSO_Name, DB_Name FROM #LSOs;
+
+
+
