@@ -1,0 +1,156 @@
+--USE cdcn_dba_utilities
+--GO
+
+
+select * from sysobjects 
+order by crdate desc
+
+
+--DROP TABLE ServerList
+
+
+-- Create the ServerList table
+CREATE TABLE dbo.ServerList (
+    ServerID INT IDENTITY(1,1) PRIMARY KEY,
+    ServerName NVARCHAR(128) NOT NULL,
+    ServerType NVARCHAR(50) NOT NULL, -- 'SQLServer' or 'AzureSQL'
+    DateAdded DATETIME DEFAULT GETDATE(),
+    UNIQUE (ServerName) -- Ensure no duplicates
+);
+
+--DROP TABLE dbo.DatabaseTracking 
+--Create DatabaseTracking table
+CREATE TABLE dbo.DatabaseTracking (
+    TrackingID INT IDENTITY(1,1) PRIMARY KEY,
+    ServerName NVARCHAR(128) NOT NULL,
+    DatabaseName NVARCHAR(128) NOT NULL,
+    DateDetected DATETIME DEFAULT GETDATE(),
+    UNIQUE (ServerName, DatabaseName) -- Prevent duplicates
+);
+
+--select * from sys.servers
+-- Populate ServerList from sys.servers where is_linked = 1 and name LIKE 'CMS_%'
+INSERT INTO dbo.ServerList (ServerName, ServerType)
+SELECT 
+    name AS ServerName,
+    CASE 
+        WHEN data_source LIKE '%.database.windows.net%' THEN 'AzureSQL'
+        ELSE 'SQLServer'
+    END AS ServerType
+FROM master.sys.servers
+WHERE is_linked = 1 
+AND name LIKE 'CMS_%master'
+AND name NOT IN (SELECT ServerName FROM dbo.ServerList); -- Avoid duplicates if re-running
+
+
+
+
+--core-cdcn-sql-preprod.database.windows.net
+
+--detect new databases
+DECLARE @ServerName NVARCHAR(128), @ServerType NVARCHAR(50), @SQL NVARCHAR(MAX), @DatabaseName NVARCHAR(128);
+DECLARE @NewDatabases TABLE (ServerName NVARCHAR(128), DatabaseName NVARCHAR(128));
+
+-- Cursor to loop through servers
+DECLARE server_cursor CURSOR FOR 
+SELECT ServerName, ServerType FROM dbo.ServerList
+--WHERE ServerName like 'CMS%PreProd%master' --TESTING
+;
+
+OPEN server_cursor;
+FETCH NEXT FROM server_cursor INTO @ServerName, @ServerType;
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+-- Dynamic SQL to query databases, tailored by platform type
+    SET @SQL = 
+        CASE @ServerType
+            WHEN 'SQLServer' THEN 
+                N'SELECT name FROM [' + @ServerName + '].master.sys.databases WHERE name NOT IN (''master'', ''tempdb'', ''model'', ''msdb'')'
+            WHEN 'AzureSQL' THEN 
+                N'SELECT name FROM [' + @ServerName + '].master.sys.databases WHERE name NOT IN (''master'')'
+            ELSE N''
+        END;
+
+-- Temp table to hold database list from each server
+    CREATE TABLE #TempDBs (DatabaseName NVARCHAR(128));
+
+-- Execute dynamic SQL to fetch databases
+    BEGIN TRY
+        INSERT INTO #TempDBs (DatabaseName)
+        EXEC sp_executesql @SQL;
+
+-- Find new databases by comparing with tracking table
+        INSERT INTO @NewDatabases (ServerName, DatabaseName)
+        SELECT @ServerName, t.DatabaseName
+        FROM #TempDBs t
+        LEFT JOIN dbo.DatabaseTracking dt 
+            ON dt.ServerName = @ServerName AND dt.DatabaseName = t.DatabaseName
+        WHERE dt.DatabaseName IS NULL;
+
+-- Insert new databases into tracking table
+        INSERT INTO dbo.DatabaseTracking (ServerName, DatabaseName)
+        SELECT ServerName, DatabaseName
+        FROM @NewDatabases
+        WHERE ServerName = @ServerName;
+
+        DROP TABLE #TempDBs;
+    END TRY
+    BEGIN CATCH
+        PRINT 'Error querying ' + @ServerName + ': ' + ERROR_MESSAGE();
+        DROP TABLE #TempDBs;
+    END CATCH;
+
+    FETCH NEXT FROM server_cursor INTO @ServerName, @ServerType;
+END;
+
+CLOSE server_cursor;
+DEALLOCATE server_cursor;
+
+
+-- Send email notification if new databases are found
+IF EXISTS (SELECT 1 FROM @NewDatabases)
+BEGIN
+    DECLARE @EmailBody NVARCHAR(MAX);
+
+-- Build the email body with an HTML table and zebra striping, including DateDetected
+    SET @EmailBody = N'
+        <html>
+        <body>
+        <h3>New Databases Detected</h3>
+        <table border="1" style="border-collapse: collapse; width: 60%;">
+            <tr style="background-color: #4CAF50; color: white;">
+                <th>Server Name</th>
+                <th>Database Name</th>
+                <th>Date Detected</th>
+            </tr>' + 
+-- Use ROW_NUMBER() to alternate row colors, join with DatabaseTracking
+        (SELECT 
+            CASE 
+                WHEN ROW_NUMBER() OVER (ORDER BY nd.ServerName, nd.DatabaseName) % 2 = 1 
+                THEN '<tr style="background-color: #f2f2f2;">'
+                ELSE '<tr style="background-color: #ffffff;">'
+            END + 
+            '<td>' + nd.ServerName + '</td>' +
+            '<td>' + nd.DatabaseName + '</td>' +
+            '<td>' + CONVERT(NVARCHAR(20), dt.DateDetected, 120) + '</td>' +
+            '</tr>'
+         FROM @NewDatabases nd
+         INNER JOIN dbo.DatabaseTracking dt 
+            ON dt.ServerName = nd.ServerName AND dt.DatabaseName = nd.DatabaseName
+         FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)') + 
+        N'</table>
+        </body>
+        </html>';
+
+    EXEC msdb.dbo.sp_send_dbmail
+        @profile_name = 'SQLServer',
+        @recipients = 'stephenm@consumerdirectcare.com',
+        @subject = '[FOR INFORMATION / REVIEW] - NEW DATABASE CREATION SUMMARY',
+        @body = @EmailBody,
+        @body_format = 'HTML';
+END;
+
+
+
+
