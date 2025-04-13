@@ -1,0 +1,129 @@
+-- Long-running test query (simple WAITFOR DELAY)
+SET NOCOUNT ON;
+SELECT 'Starting long-running query' AS Status;
+WAITFOR DELAY '00:05:00'; -- Runs for 3 minutes (180 seconds)
+SELECT 'Completed long-running query' AS Status;
+
+
+--Long-running test query (iterative loop)
+SET NOCOUNT ON;
+DECLARE @Counter INT = 0;
+DECLARE @MaxIterations INT = 700000;
+DECLARE @DummyResult BIGINT;
+SELECT 'Starting long-running query' AS Status;
+WHILE @Counter < @MaxIterations
+BEGIN
+    SET @DummyResult = (SELECT COUNT(*) FROM sys.objects WHERE object_id % 2 = 0);
+    SET @Counter = @Counter + 1;
+END;
+SELECT 'Completed long-running query' AS Status;
+
+
+
+-- Resource-hogging test query
+SET NOCOUNT ON;
+
+-- Create a temp table for I/O
+CREATE TABLE #TempData (ID INT, Data NVARCHAR(100));
+
+DECLARE @Counter INT = 0;
+DECLARE @MaxIterations INT = 500000; -- Adjust to control duration
+DECLARE @StartTime DATETIME = GETDATE();
+
+WHILE @Counter < @MaxIterations
+BEGIN
+    -- CPU-intensive calculation
+    DECLARE @DummyResult BIGINT = (SELECT SUM(CAST(ABS(CHECKSUM(NEWID())) AS BIGINT)) FROM sys.objects CROSS JOIN sys.columns);
+
+    -- I/O-intensive writes
+    INSERT INTO #TempData (ID, Data)
+    SELECT @Counter, REPLICATE('X', 100);
+
+    SET @Counter = @Counter + 1;
+
+    -- Stop after ~2 minutes to avoid running too long
+    IF DATEDIFF(SECOND, @StartTime, GETDATE()) > 120
+        BREAK;
+END;
+
+DROP TABLE #TempData;
+SELECT 'Completed resource-hogging query' AS Status;
+
+
+
+
+
+
+
+
+--TROUBLESHOOTING
+
+
+
+
+SELECT * FROM dbo.ResourceHogLog WHERE Reason = 'LongRunning';
+
+
+
+SELECT * FROM dbo.NotificationLog
+
+
+
+select * from dbo.ErrorLog;
+
+
+
+
+EXEC msdb.dbo.sp_send_dbmail
+    @profile_name = 'SQLServer',
+    @recipients = 'stephenm@consumerdirectcare.com',
+    @subject = 'Test Email',
+    @body = 'This is a test.';
+
+
+
+
+
+select top 100* from msdb..sysmail_sentitems
+order by mailitem_id desc
+go
+
+select top 100* from msdb..sysmail_event_log
+order by mailitem_id desc
+go
+
+select top 500 a.mailitem_id, a.profile_id, a.send_request_date, b.event_type, b.description, a.recipients, a.subject, a.body, a.send_request_user 
+from msdb..sysmail_sentitems a
+join msdb..sysmail_event_log b
+on a.mailitem_id = b.mailitem_id
+order by mailitem_id desc
+
+
+select top 500 a.mailitem_id, a.profile_id, a.send_request_date, b.event_type, b.description, a.recipients, a.subject, a.body, a.send_request_user 
+from msdb..sysmail_faileditems a
+join msdb..sysmail_event_log b
+on a.mailitem_id = b.mailitem_id
+order by mailitem_id desc
+
+
+select top 500 a.mailitem_id, a.profile_id, a.send_request_date, b.event_type, b.description, a.recipients, a.subject, a.body, a.send_request_user 
+from msdb..sysmail_unsentitems a
+join msdb..sysmail_event_log b
+on a.mailitem_id = b.mailitem_id
+order by mailitem_id desc
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
