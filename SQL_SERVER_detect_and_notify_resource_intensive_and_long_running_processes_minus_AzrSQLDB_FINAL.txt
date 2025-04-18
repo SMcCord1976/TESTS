@@ -1,0 +1,354 @@
+
+---- Step 1: Ensure supporting tables exist
+--CREATE TABLE IF NOT EXISTS dbo.ResourceHogLog (
+--    LogID INT IDENTITY(1,1) PRIMARY KEY,
+--    SPID INT,
+--    LoginName NVARCHAR(128),
+--    HostName NVARCHAR(128),
+--    ProgramName NVARCHAR(128),
+--    CPUTime BIGINT,
+--    DiskIO BIGINT,
+--    StartTime DATETIME,
+--    LastCheckTime DATETIME,
+--    Status NVARCHAR(50),
+--    QueryText NVARCHAR(MAX),
+--    Reason NVARCHAR(50),
+--    InstanceName NVARCHAR(128),
+--    DatabaseName NVARCHAR(128)
+--);
+
+--CREATE TABLE IF NOT EXISTS dbo.NotificationLog (
+--    NotificationID INT IDENTITY(1,1) PRIMARY KEY,
+--    SPID INT,
+--    LoginName NVARCHAR(128),
+--    EmailSentTo NVARCHAR(255),
+--    SentTime DATETIME,
+--    Message NVARCHAR(MAX),
+--    InstanceName NVARCHAR(128),
+--    DatabaseName NVARCHAR(128)
+--);
+
+--CREATE TABLE IF NOT EXISTS dbo.DBATeam (
+--    TeamMemberID INT IDENTITY(1,1) PRIMARY KEY,
+--    EmailAddress NVARCHAR(255)
+--);
+
+--IF NOT EXISTS (SELECT 1 FROM dbo.DBATeam)
+--    INSERT INTO dbo.DBATeam (EmailAddress)
+--    VALUES 
+--        ('stephenm@consumerdirectcare.com'),
+--        ('dba1@consumerdirectcare.com'),
+--        ('dba2@consumerdirectcare.com');
+
+--CREATE TABLE IF NOT EXISTS dbo.ErrorLog (
+--    ErrorID INT IDENTITY(1,1) PRIMARY KEY,
+--    ErrorMessage NVARCHAR(MAX),
+--    ErrorDate DATETIME DEFAULT GETDATE()
+--);
+
+
+----Initialize for fresh run
+----Cleanup: Truncate old logs to start fresh
+--TRUNCATE TABLE dbo.ResourceHogLog;
+--TRUNCATE TABLE dbo.NotificationLog;
+--DROP TABLE ResourceHogLog;
+--DROP TABLE NotificationLog;
+--DROP TABLE DBATeam;
+--DROP TABLE ErrorLog;
+--DROP TABLE #CurrentUsage
+--DROP TABLE #DebugLongRunning
+--DROP TABLE #PreMergeDebug
+--DROP TABLE #CursorDebug
+--DROP TABLE #DatabaseList
+--DROP TABLE #RawDMVData
+
+
+-- Step 2: Detect Resource Hogs and Long-Running Queries
+-- Note: Azure SQL Databases are excluded from this revision due to:
+-- 1. Feature limitations in Azure SQL (restricted DMV access, no cross-database joins).
+-- 2. Organizational restrictions (inadequate permissions on cms_admin account).
+-- Future revisions may include Azure SQL when permissions are resolved and alternative methods (e.g., master database views) are viable.
+DECLARE @TotalCPUTime BIGINT, @TotalDiskIO BIGINT;
+DECLARE @ThresholdPercent FLOAT = 50.0; -- Lowered for testing
+DECLARE @MinDurationMinutes INT = 5;
+DECLARE @LongRunningThresholdMinutes INT = 0.5; -- 30 seconds for testing
+DECLARE @KillWarningMinutes INT = 15;
+DECLARE @ServerName NVARCHAR(128), @SQL NVARCHAR(MAX);
+
+CREATE TABLE #CurrentUsage (
+    SPID INT,
+    LoginName NVARCHAR(128),
+    HostName NVARCHAR(128),
+    ProgramName NVARCHAR(128),
+    CPUTime BIGINT,
+    DiskIO BIGINT,
+    StartTime DATETIME,
+    QueryText NVARCHAR(MAX),
+    Reason NVARCHAR(50),
+    InstanceName NVARCHAR(128),
+    DatabaseName NVARCHAR(128)
+);
+
+CREATE TABLE #RawDMVData (
+    SPID INT,
+    LoginName NVARCHAR(128),
+    HostName NVARCHAR(128),
+    ProgramName NVARCHAR(128),
+    CPUTime BIGINT,
+    DiskIO BIGINT,
+    StartTime DATETIME,
+    SQLHandle VARBINARY(64),
+    InstanceName NVARCHAR(128),
+    DatabaseName NVARCHAR(128)
+);
+
+DECLARE server_cursor CURSOR FOR
+SELECT name AS ServerName
+FROM sys.servers
+WHERE is_linked = 1 
+AND name LIKE 'CMS_%'
+AND data_source NOT LIKE '%.database.windows.net%'; -- Exclude Azure SQL
+
+OPEN server_cursor;
+FETCH NEXT FROM server_cursor INTO @ServerName;
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    BEGIN TRY
+        INSERT INTO dbo.ErrorLog (ErrorMessage, ErrorDate)
+        VALUES ('Querying SQL Server: ' + @ServerName + ' (StartTime: ' + CONVERT(NVARCHAR(30), GETDATE(), 120) + ')', GETDATE());
+
+        SET @SQL = N'
+            SELECT 
+                @TotalCPUTime = SUM(COALESCE(r.cpu_time, 0)),
+                @TotalDiskIO = SUM(COALESCE(r.reads, 0) + COALESCE(r.writes, 0))
+            FROM [' + @ServerName + '].master.sys.dm_exec_sessions s
+            JOIN [' + @ServerName + '].master.sys.dm_exec_requests r ON s.session_id = r.session_id
+            WHERE s.is_user_process = 1;
+
+            INSERT INTO #RawDMVData (SPID, LoginName, HostName, ProgramName, CPUTime, DiskIO, StartTime, SQLHandle, InstanceName, DatabaseName)
+            SELECT 
+                s.session_id AS SPID,
+                s.login_name AS LoginName,
+                s.host_name AS HostName,
+                s.program_name AS ProgramName,
+                COALESCE(r.cpu_time, 0) AS CPUTime,
+                (COALESCE(r.reads, 0) + COALESCE(r.writes, 0)) AS DiskIO,
+                r.start_time AS StartTime,
+                r.sql_handle AS SQLHandle,
+                ''' + @ServerName + ''' AS InstanceName,
+                DB_NAME(COALESCE(r.database_id, s.database_id)) AS DatabaseName
+            FROM [' + @ServerName + '].master.sys.dm_exec_sessions s
+            JOIN [' + @ServerName + '].master.sys.dm_exec_requests r ON s.session_id = r.session_id
+            WHERE s.is_user_process = 1
+            AND s.login_name NOT LIKE ''NT AUTHORITY\SYSTEM''
+            AND s.login_name NOT LIKE ''NT SERVICE\%''
+            AND s.login_name NOT IN (''cms_admin'');
+        ';
+
+        EXEC sp_executesql @SQL, 
+            N'@TotalCPUTime BIGINT OUTPUT, @TotalDiskIO BIGINT OUTPUT, @ThresholdPercent FLOAT, @LongRunningThresholdMinutes INT',
+            @TotalCPUTime OUTPUT, @TotalDiskIO OUTPUT, @ThresholdPercent, @LongRunningThresholdMinutes;
+
+        INSERT INTO dbo.ErrorLog (ErrorMessage, ErrorDate)
+        VALUES ('Raw DMV data for ' + @ServerName + ': ' + CAST((SELECT COUNT(*) FROM #RawDMVData WHERE InstanceName = @ServerName) AS NVARCHAR(10)) + ' rows', GETDATE());
+
+        INSERT INTO #CurrentUsage (SPID, LoginName, HostName, ProgramName, CPUTime, DiskIO, StartTime, QueryText, Reason, InstanceName, DatabaseName)
+        SELECT 
+            r.SPID,
+            r.LoginName,
+            r.HostName,
+            r.ProgramName,
+            r.CPUTime,
+            r.DiskIO,
+            r.StartTime,
+            COALESCE(t.text, 'No active query') AS QueryText,
+            CASE 
+                WHEN (@TotalCPUTime > 0 AND CAST(r.CPUTime AS FLOAT) / @TotalCPUTime * 100 > @ThresholdPercent) THEN 'HighCPU'
+                WHEN (@TotalDiskIO > 0 AND CAST(r.DiskIO AS FLOAT) / @TotalDiskIO * 100 > @ThresholdPercent) THEN 'HighIO'
+                WHEN r.StartTime IS NOT NULL AND DATEDIFF(MINUTE, r.StartTime, GETDATE()) > @LongRunningThresholdMinutes THEN 'LongRunning'
+            END AS Reason,
+            r.InstanceName,
+            r.DatabaseName
+        FROM #RawDMVData r
+        OUTER APPLY sys.dm_exec_sql_text(r.SQLHandle) t
+        WHERE r.InstanceName = @ServerName
+        AND r.LoginName NOT IN ('cms_admin')
+        AND (
+            (@TotalCPUTime > 0 AND CAST(r.CPUTime AS FLOAT) / @TotalCPUTime * 100 > @ThresholdPercent)
+            OR (@TotalDiskIO > 0 AND CAST(r.DiskIO AS FLOAT) / @TotalDiskIO * 100 > @ThresholdPercent)
+            OR (r.StartTime IS NOT NULL AND DATEDIFF(MINUTE, r.StartTime, GETDATE()) > @LongRunningThresholdMinutes)
+        );
+    END TRY
+    BEGIN CATCH
+        INSERT INTO dbo.ErrorLog (ErrorMessage, ErrorDate)
+        VALUES ('Error querying ' + @ServerName + ': ' + ERROR_MESSAGE(), GETDATE());
+    END CATCH;
+
+    INSERT INTO dbo.ErrorLog (ErrorMessage, ErrorDate)
+    VALUES ('CurrentUsage for ' + @ServerName + ': ' + CAST((SELECT COUNT(*) FROM #CurrentUsage WHERE InstanceName = @ServerName) AS NVARCHAR(10)) + ' rows', GETDATE());
+
+    DELETE FROM #RawDMVData WHERE InstanceName = @ServerName;
+
+    FETCH NEXT FROM server_cursor INTO @ServerName;
+END;
+
+CLOSE server_cursor;
+DEALLOCATE server_cursor;
+
+SELECT * FROM #CurrentUsage;
+
+MERGE INTO dbo.ResourceHogLog AS target
+USING #CurrentUsage AS source
+ON target.SPID = source.SPID AND target.InstanceName = source.InstanceName AND target.Status = 'Active'
+WHEN MATCHED THEN
+    UPDATE SET 
+        LastCheckTime = GETDATE(),
+        CPUTime = source.CPUTime,
+        DiskIO = source.DiskIO,
+        QueryText = source.QueryText,
+        Reason = source.Reason,
+        DatabaseName = source.DatabaseName
+WHEN NOT MATCHED THEN
+    INSERT (SPID, LoginName, HostName, ProgramName, CPUTime, DiskIO, StartTime, LastCheckTime, Status, QueryText, Reason, InstanceName, DatabaseName)
+    VALUES (source.SPID, source.LoginName, source.HostName, source.ProgramName, source.CPUTime, source.DiskIO, source.StartTime, GETDATE(), 'Active', source.QueryText, source.Reason, source.InstanceName, source.DatabaseName);
+
+IF EXISTS (SELECT 1 FROM #CurrentUsage)
+BEGIN
+    UPDATE dbo.ResourceHogLog
+    SET Status = 'Completed'
+    WHERE Status = 'Active'
+    AND SPID NOT IN (
+        SELECT SPID 
+        FROM #CurrentUsage 
+        WHERE InstanceName = dbo.ResourceHogLog.InstanceName
+    );
+END;
+
+DROP TABLE #CurrentUsage;
+DROP TABLE #RawDMVData;
+
+-- Step 3: Notification Logic
+DECLARE @SPID INT, @LoginName NVARCHAR(128), @HostName NVARCHAR(128), @ProgramName NVARCHAR(128), 
+        @CPUTime BIGINT, @DiskIO BIGINT, @StartTime DATETIME, @QueryText NVARCHAR(MAX), @Reason NVARCHAR(50),
+        @InstanceName NVARCHAR(128), @DatabaseName NVARCHAR(128);
+DECLARE @EmailBody NVARCHAR(MAX), @Recipients NVARCHAR(255), @CCRecipients NVARCHAR(255), @EmailSubject NVARCHAR(255);
+
+CREATE TABLE #CursorDebug (
+    SPID INT,
+    LoginName NVARCHAR(128),
+    Reason NVARCHAR(50),
+    MinutesRunning INT,
+    Status NVARCHAR(50),
+    Recipients NVARCHAR(255)
+);
+
+DECLARE hog_cursor CURSOR FOR
+SELECT 
+    r.SPID, r.LoginName, r.HostName, r.ProgramName, r.CPUTime, r.DiskIO, r.StartTime, r.QueryText, r.Reason,
+    r.InstanceName, r.DatabaseName
+FROM dbo.ResourceHogLog r
+LEFT JOIN dbo.NotificationLog n ON r.SPID = n.SPID AND r.InstanceName = n.InstanceName
+WHERE r.Status = 'Active'
+AND n.SPID IS NULL
+AND (
+    (r.Reason IN ('HighCPU', 'HighIO') AND DATEDIFF(MINUTE, r.StartTime, GETDATE()) >= @MinDurationMinutes)
+    OR (r.Reason = 'LongRunning')
+);
+
+OPEN hog_cursor;
+FETCH NEXT FROM hog_cursor INTO @SPID, @LoginName, @HostName, @ProgramName, @CPUTime, @DiskIO, @StartTime, @QueryText, @Reason, @InstanceName, @DatabaseName;
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    DECLARE @DurationMinutes INT = DATEDIFF(MINUTE, @StartTime, GETDATE());
+
+    IF @LoginName LIKE '%\%'
+    BEGIN
+        SET @Recipients = REPLACE(@LoginName, 'NIGHTINGALE\', '') + '@consumerdirectcare.com';
+        SET @CCRecipients = (SELECT STRING_AGG(EmailAddress, ';') FROM dbo.DBATeam);
+    END
+    ELSE
+    BEGIN
+        SET @Recipients = (SELECT STRING_AGG(EmailAddress, ';') FROM dbo.DBATeam);
+        SET @CCRecipients = NULL;
+    END;
+
+    INSERT INTO #CursorDebug (SPID, LoginName, Reason, MinutesRunning, Status, Recipients)
+    VALUES (@SPID, @LoginName, @Reason, @DurationMinutes, 'Fetched', @Recipients);
+
+    SET @EmailBody = N'
+        <html>
+        <body>
+        <h3>Warning: Your Query is ' + 
+        CASE @Reason 
+            WHEN 'HighCPU' THEN 'Consuming Excessive CPU'
+            WHEN 'HighIO' THEN 'Consuming Excessive Disk I/O'
+            ELSE 'Running Too Long'
+        END + N'</h3>
+        <p>Your session (SPID ' + CAST(@SPID AS NVARCHAR(10)) + ') on instance ' + @InstanceName + ', database ' + @DatabaseName + ' is ' +
+        CASE @Reason 
+            WHEN 'HighCPU' THEN 'using excessive CPU, affecting server performance.'
+            WHEN 'HighIO' THEN 'using excessive Disk I/O, affecting server performance.'
+            ELSE 'running for ' + CAST(@DurationMinutes AS NVARCHAR(10)) + ' minutes, which is too long.'
+        END + N'</p>
+        <p><b>Details:</b></p>
+        <ul>
+            <li>Instance: ' + @InstanceName + '</li>
+            <li>Database: ' + @DatabaseName + '</li>
+            <li>Program: ' + ISNULL(@ProgramName, 'N/A') + '</li>
+            <li>Host: ' + ISNULL(@HostName, 'N/A') + '</li>
+            <li>CPU Time: ' + CAST(@CPUTime AS NVARCHAR(20)) + ' ms</li>
+            <li>Disk I/O: ' + CAST(@DiskIO AS NVARCHAR(20)) + ' operations</li>
+            <li>Start Time: ' + CONVERT(NVARCHAR(20), @StartTime, 120) + '</li>
+            <li>Query: <pre>' + ISNULL(@QueryText, 'N/A') + '</pre></li>
+        </ul>
+        <p>Please optimize or cancel your query. If it does not complete within the next ' + CAST(@KillWarningMinutes AS NVARCHAR(10)) + ' minutes, we may terminate the session to protect server performance.</p>
+        </body>
+        </html>';
+
+    SET @EmailSubject = 'SQL Server Resource Usage Alert - ' + ISNULL(@InstanceName, 'Unknown');
+
+    BEGIN TRY
+        IF @Recipients IS NOT NULL AND @Recipients <> ''
+        BEGIN
+            EXEC msdb.dbo.sp_send_dbmail
+                @profile_name = 'SQLServer',
+                @recipients = @Recipients,
+                @copy_recipients = @CCRecipients,
+                @subject = @EmailSubject,
+                @body = @EmailBody,
+                @body_format = 'HTML';
+
+            INSERT INTO dbo.NotificationLog (SPID, LoginName, EmailSentTo, SentTime, Message, InstanceName, DatabaseName)
+            VALUES (@SPID, @LoginName, @Recipients + ISNULL(';' + @CCRecipients, ''), GETDATE(), @EmailBody, @InstanceName, @DatabaseName);
+
+            UPDATE dbo.ResourceHogLog
+            SET Status = 'Notified'
+            WHERE SPID = @SPID AND InstanceName = @InstanceName;
+        END
+        ELSE
+        BEGIN
+            INSERT INTO dbo.ErrorLog (ErrorMessage, ErrorDate)
+            VALUES ('No valid recipients for SPID ' + CAST(@SPID AS NVARCHAR(10)) + ', Login ' + @LoginName + ' on ' + @InstanceName, GETDATE());
+        END
+    END TRY
+    BEGIN CATCH
+        INSERT INTO dbo.ErrorLog (ErrorMessage, ErrorDate)
+        VALUES ('Failed to send email for SPID ' + CAST(@SPID AS NVARCHAR(10)) + ', Login ' + @LoginName + ' on ' + @InstanceName + ': ' + ERROR_MESSAGE(), GETDATE());
+    END CATCH;
+
+    FETCH NEXT FROM hog_cursor INTO @SPID, @LoginName, @HostName, @ProgramName, @CPUTime, @DiskIO, @StartTime, @QueryText, @Reason, @InstanceName, @DatabaseName;
+END;
+
+SELECT * FROM #CursorDebug;
+
+CLOSE hog_cursor;
+DEALLOCATE hog_cursor;
+
+DROP TABLE #CursorDebug;
+
+
+
+
+
