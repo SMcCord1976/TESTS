@@ -1,0 +1,40 @@
+DECLARE @TableName NVARCHAR(128), @IndexName NVARCHAR(128), @SQL NVARCHAR(MAX), @Message NVARCHAR(4000);
+
+DECLARE index_cursor CURSOR FOR
+
+SELECT 
+	 dbtables.[name] AS TableName
+	,dbindexes.[name] AS IndexName
+	FROM sys.dm_db_index_physical_stats(DB_ID(), NULL, NULL, NULL, 'LIMITED') AS indexstats
+INNER JOIN sys.tables dbtables
+	ON dbtables.[object_id] = indexstats.[object_id]
+INNER JOIN sys.schemas dbschemas
+	ON dbtables.[schema_id] = dbschemas.[schema_id]
+INNER JOIN sys.indexes AS dbindexes
+	ON dbindexes.[object_id] = indexstats.[object_id]
+		AND indexstats.index_id = dbindexes.index_id
+WHERE indexstats.database_id = DB_ID()
+AND indexstats.avg_fragmentation_in_percent > 60 --<--CHANGE THIS VALUE TO SUIT NEEDS
+AND indexstats.index_id > 0;
+
+
+OPEN index_cursor;
+FETCH NEXT FROM index_cursor INTO @TableName, @IndexName;
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    SET @SQL = N'ALTER INDEX [' + @IndexName + '] ON [' + @TableName + '] REORGANIZE;';
+    SET @Message = N'Reorganizing: ' + @IndexName + ' on ' + @TableName + ' at ' + CONVERT(NVARCHAR(30), GETDATE(), 120);
+    RAISERROR (@Message, 0, 1) WITH NOWAIT;
+    EXEC sp_executesql @SQL;
+    SET @Message = N'Pausing for 5 seconds at ' + CONVERT(NVARCHAR(30), GETDATE(), 120) + ' - Safe to terminate query if needed.';
+    RAISERROR (@Message, 0, 1) WITH NOWAIT;
+    WAITFOR DELAY '00:00:05';
+    FETCH NEXT FROM index_cursor INTO @TableName, @IndexName;
+END
+
+
+
+CLOSE index_cursor;
+DEALLOCATE index_cursor;
+
