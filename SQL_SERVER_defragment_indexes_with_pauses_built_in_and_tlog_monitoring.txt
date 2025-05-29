@@ -1,0 +1,82 @@
+Permanent Logging:
+For auditing, replace #MaintenanceLog with a permanent table and keep INSERT statements. Query it later:
+
+SELECT * FROM MaintenanceLog WHERE LogTime >= DATEADD(HOUR, -24, GETDATE());
+
+Performance Monitoring:
+Watch server load during execution:
+
+SELECT session_id, status, command, wait_type, wait_time
+FROM sys.dm_exec_requests
+WHERE session_id = [YourSessionID];
+
+
+-- Create temp table to log skipped indexes
+CREATE TABLE #MaintenanceLog (
+    LogID INT IDENTITY,
+    Message NVARCHAR(4000),
+    LogTime DATETIME DEFAULT GETDATE()
+);
+
+DECLARE @TableName NVARCHAR(128), 
+        @IndexName NVARCHAR(128), 
+        @SQL NVARCHAR(MAX), 
+        @Message NVARCHAR(4000),
+        @LogUsedPercent DECIMAL(5,2),
+        @LogThreshold DECIMAL(5,2) = 80.0; -- Stop reorganizing if log is >80% full
+
+-- Cursor for fragmented indexes
+DECLARE index_cursor CURSOR FOR
+SELECT 
+    OBJECT_NAME(object_id) AS TableName,
+    name AS IndexName
+FROM sys.dm_db_index_physical_stats(DB_ID(), NULL, NULL, NULL, 'LIMITED')
+WHERE avg_fragmentation_in_percent > 30
+    AND index_id > 0;
+
+OPEN index_cursor;
+FETCH NEXT FROM index_cursor INTO @TableName, @IndexName;
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    -- Check transaction log usage
+    SELECT @LogUsedPercent = LogSpaceUsed
+    FROM (
+        SELECT 
+            CAST([Log Space Used (%)] AS DECIMAL(5,2)) AS LogSpaceUsed
+        FROM sys.dm_exec_sql_text(DBCC SQLPERF(LOGSPACE))
+        WHERE database_name = DB_NAME()
+    ) AS LogStats;
+
+    IF @LogUsedPercent < @LogThreshold
+    BEGIN
+        -- Safe to reorganize
+        SET @SQL = N'ALTER INDEX [' + @IndexName + '] ON [' + @TableName + '] REORGANIZE;';
+        SET @Message = N'Reorganizing: ' + @IndexName + ' on ' + @TableName + ' at ' + CONVERT(NVARCHAR(30), GETDATE(), 120) + ' (Log: ' + CAST(@LogUsedPercent AS NVARCHAR(10)) + '%)';
+        RAISERROR (@Message, 0, 1) WITH NOWAIT;
+        EXEC sp_executesql @SQL;
+        SET @Message = N'Pausing for 5 seconds at ' + CONVERT(NVARCHAR(30), GETDATE(), 120) + ' - Safe to terminate query if needed.';
+        RAISERROR (@Message, 0, 1) WITH NOWAIT;
+        WAITFOR DELAY '00:00:05';
+    END
+    ELSE
+    BEGIN
+        -- Log skip due to high log usage
+        SET @Message = N'Skipped: ' + @IndexName + ' on ' + @TableName + ' at ' + CONVERT(NVARCHAR(30), GETDATE(), 120) + ' due to high log usage (' + CAST(@LogUsedPercent AS NVARCHAR(10)) + '% > ' + CAST(@LogThreshold AS NVARCHAR(10)) + '%)';
+        INSERT INTO #MaintenanceLog (Message) VALUES (@Message);
+        RAISERROR (@Message, 0, 1) WITH NOWAIT;
+    END
+
+    FETCH NEXT FROM index_cursor INTO @TableName, @IndexName;
+END
+
+CLOSE index_cursor;
+DEALLOCATE index_cursor;
+
+-- Display skipped indexes
+SET @Message = N'Completed. Check #MaintenanceLog for skipped indexes.';
+RAISERROR (@Message, 0, 1) WITH NOWAIT;
+SELECT Message, LogTime FROM #MaintenanceLog;
+
+-- Clean up
+DROP TABLE #MaintenanceLog;
