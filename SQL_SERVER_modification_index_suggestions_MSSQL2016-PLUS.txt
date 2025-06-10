@@ -1,0 +1,132 @@
+WITH IndexColumns AS (
+    SELECT 
+        i.object_id,
+        i.index_id,
+        i.name AS IndexName,
+        ic.is_included_column,
+        c.name AS ColumnName
+    FROM sys.indexes i
+    INNER JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id
+    INNER JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
+),
+IndexDetails AS (
+    SELECT 
+        i.object_id,
+        i.index_id,
+        i.name AS IndexName,
+        i.type_desc AS IndexType,
+        i.is_unique,
+        t.name AS TableName,
+        COUNT(ic.column_id) AS ColumnCount,
+        -- Estimate total width of index columns (key + included)
+        SUM(CASE 
+                WHEN c.system_type_id IN (231, 239) THEN c.max_length / 2 -- nvarchar, nchar
+                WHEN c.system_type_id IN (167, 175) THEN c.max_length -- varchar, char
+                WHEN c.system_type_id IN (36) THEN 16 -- uniqueidentifier
+                WHEN c.system_type_id IN (108, 106) THEN 9 -- numeric, decimal
+                ELSE c.max_length 
+            END) AS EstimatedWidthBytes,
+        -- Get usage stats
+        COALESCE(us.user_seeks, 0) + COALESCE(us.user_scans, 0) + COALESCE(us.user_lookups, 0) AS TotalReads,
+        COALESCE(us.user_updates, 0) AS TotalWrites,
+        -- Aggregate key columns using FOR XML PATH with collation
+        STUFF((
+            SELECT ', ' + c2.ColumnName
+            FROM IndexColumns c2
+            WHERE c2.object_id = i.object_id 
+              AND c2.index_id = i.index_id 
+              AND c2.is_included_column = 0
+            ORDER BY c2.ColumnName
+            FOR XML PATH(''), TYPE
+        ).value('.', 'NVARCHAR(MAX)'), 1, 2, '') COLLATE SQL_Latin1_General_CP1_CI_AS AS KeyColumns,
+        -- Aggregate included columns using FOR XML PATH with collation
+        STUFF((
+            SELECT ', ' + c2.ColumnName
+            FROM IndexColumns c2
+            WHERE c2.object_id = i.object_id 
+              AND c2.index_id = i.index_id 
+              AND c2.is_included_column = 1
+            ORDER BY c2.ColumnName
+            FOR XML PATH(''), TYPE
+        ).value('.', 'NVARCHAR(MAX)'), 1, 2, '') COLLATE SQL_Latin1_General_CP1_CI_AS AS IncludedColumns
+    FROM sys.indexes i
+    INNER JOIN sys.tables t ON i.object_id = t.object_id
+    INNER JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id
+    INNER JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
+    LEFT JOIN sys.dm_db_index_usage_stats us ON i.object_id = us.object_id AND i.index_id = us.index_id
+    WHERE i.type IN (1, 2) -- Clustered and nonclustered indexes only
+    GROUP BY i.object_id, i.index_id, i.name, i.type_desc, i.is_unique, t.name, us.user_seeks, us.user_scans, us.user_lookups, us.user_updates
+),
+SuggestedMods AS (
+    SELECT 
+        TableName,
+        IndexName,
+        IndexType,
+        is_unique,
+        ColumnCount,
+        EstimatedWidthBytes,
+        TotalReads,
+        TotalWrites,
+        KeyColumns,
+        IncludedColumns,
+        CASE 
+            WHEN TotalReads = 0 AND TotalWrites > 0 THEN 'High Maintenance, No Reads'
+            WHEN TotalReads < TotalWrites THEN 'Low Read-to-Write Ratio'
+            ELSE 'Used'
+        END AS UsageStatus,
+        -- Generate modification statement with safe handling for single-column indexes
+        ('CREATE ' + 
+        CASE WHEN is_unique = 1 THEN 'UNIQUE ' ELSE '' END +
+        IndexType + ' INDEX ' + QUOTENAME(IndexName) + 
+        ' ON ' + QUOTENAME(TableName) + 
+        ' (' + 
+        -- Keep first 2 key columns, or all if fewer than 2
+        CASE 
+            WHEN CHARINDEX(',', KeyColumns + ',') = 0 THEN COALESCE(KeyColumns, '')
+            WHEN CHARINDEX(',', KeyColumns + ',', CHARINDEX(',', KeyColumns + ',') + 1) = 0 THEN KeyColumns
+            ELSE LEFT(KeyColumns, 
+                      CHARINDEX(',', KeyColumns + ',', 
+                                CHARINDEX(',', KeyColumns + ',') + 1) - 1)
+        END + ')' +
+        -- Move remaining key columns and existing included columns to INCLUDE
+        CASE 
+            WHEN LEN(COALESCE(IncludedColumns, '')) > 0 
+                 OR (CHARINDEX(',', KeyColumns + ',', CHARINDEX(',', KeyColumns + ',') + 1) > 0 
+                     AND KeyColumns IS NOT NULL)
+            THEN ' INCLUDE (' + 
+                 COALESCE(
+                     NULLIF(SUBSTRING(KeyColumns, 
+                                      CHARINDEX(',', KeyColumns + ',', 
+                                                CHARINDEX(',', KeyColumns + ',') + 1), 
+                                      LEN(KeyColumns)), '') + 
+                     CASE WHEN LEN(COALESCE(IncludedColumns, '')) > 0 
+                          THEN ', ' + IncludedColumns 
+                          ELSE '' 
+                     END,
+                     IncludedColumns,
+                     SUBSTRING(KeyColumns, 
+                               CHARINDEX(',', KeyColumns + ',', 
+                                         CHARINDEX(',', KeyColumns + ',') + 1), 
+                               LEN(KeyColumns))
+                 ) + ')'
+            ELSE ''
+        END +
+        ' WITH (DROP_EXISTING = ON);') COLLATE SQL_Latin1_General_CP1_CI_AS AS SuggestedModification
+    FROM IndexDetails
+    WHERE ColumnCount > 5 -- Arbitrary threshold for "too many" columns
+       OR EstimatedWidthBytes > 1000 -- Arbitrary threshold for "too wide"
+)
+SELECT 
+    TableName,
+    IndexName,
+    IndexType,
+    ColumnCount,
+    EstimatedWidthBytes,
+    TotalReads,
+    TotalWrites,
+    UsageStatus,
+    KeyColumns,
+    IncludedColumns,
+    SuggestedModification
+FROM SuggestedMods
+ORDER BY EstimatedWidthBytes DESC, ColumnCount DESC;
