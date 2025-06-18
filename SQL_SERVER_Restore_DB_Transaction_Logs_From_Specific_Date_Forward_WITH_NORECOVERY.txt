@@ -1,0 +1,118 @@
+-- T-SQL script to reinitialize SQL Server log shipping by applying .trn files from a directory
+
+-- Supports filtering logs by minimum datetime
+
+-- Make sure you read the script carefully before executing it.  See Steve M. or JT for assistance.
+
+-- Parameters
+DECLARE @DatabaseName NVARCHAR(128) = 'DATABASE'; -- Replace with your database name
+DECLARE @TrnFilePath NVARCHAR(260) = 'S:\MSSQL\DUMP\TLOG\'; -- Directory containing .trn files (must end with \)
+DECLARE @RestorePath NVARCHAR(260) = 'S:\MSSQL\LOG\'; -- Path where database files are restored (must end with \)
+
+DECLARE @MinDateTime DATETIME = NULL; -- OPTIONAL: Apply logs from this datetime forward (e.g., '2025-06-18 07:00:00')
+
+-- Variables
+DECLARE @TrnFileName NVARCHAR(260);
+DECLARE @FullTrnPath NVARCHAR(260);
+DECLARE @SqlCommand NVARCHAR(MAX);
+DECLARE @CmdShellCommand NVARCHAR(4000);
+DECLARE @ErrorMessage NVARCHAR(4000);
+DECLARE @FileDateTime DATETIME;
+DECLARE @TimestampStr NVARCHAR(12);
+
+-- Temporary table to store .trn file names
+IF OBJECT_ID('tempdb..#TrnFiles') IS NOT NULL DROP TABLE #TrnFiles;
+CREATE TABLE #TrnFiles (FileName NVARCHAR(260));
+
+-- Ensure xp_cmdshell is enabled (uncomment and run once if needed, requires CONTROL SERVER permission)
+-- EXEC sp_configure 'show advanced options', 1; RECONFIGURE;
+-- EXEC sp_configure 'xp_cmdshell', 1; RECONFIGURE;
+
+-- Get list of .trn files using xp_cmdshell
+SET @CmdShellCommand = 'dir "' + @TrnFilePath + '*.trn" /b';
+INSERT INTO #TrnFiles (FileName)
+EXEC xp_cmdshell @CmdShellCommand;
+
+-- Remove null or empty rows
+DELETE FROM #TrnFiles WHERE FileName IS NULL OR FileName = '';
+
+-- Check if any .trn files exist
+IF NOT EXISTS (SELECT 1 FROM #TrnFiles)
+BEGIN
+    RAISERROR ('No .trn files found in the specified directory: %s', 16, 1, @TrnFilePath);
+    RETURN;
+END
+
+-- Set database to single-user mode and no-recovery state
+BEGIN TRY
+    SET @SqlCommand = N'ALTER DATABASE [' + @DatabaseName + '] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+                       RESTORE DATABASE [' + @DatabaseName + '] WITH NORECOVERY;';
+    EXEC sp_executesql @SqlCommand;
+END TRY
+BEGIN CATCH
+    SET @ErrorMessage = ERROR_MESSAGE();
+    RAISERROR ('Failed to set database to restoring mode: %s', 16, 1, @ErrorMessage);
+    RETURN;
+END CATCH
+
+-- Cursor to loop through .trn files
+DECLARE trn_cursor CURSOR LOCAL FAST_FORWARD FOR
+SELECT FileName FROM #TrnFiles ORDER BY FileName; -- Assumes file names include timestamps for correct order
+
+OPEN trn_cursor;
+FETCH NEXT FROM trn_cursor INTO @TrnFileName;
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    -- Extract timestamp from filename (assumes format like DatabaseName_YYYYMMDDHHMM.trn)
+    SET @TimestampStr = RIGHT(LEFT(@TrnFileName, LEN(@TrnFileName) - 4), 12); -- Remove .trn and get last 12 chars
+    BEGIN TRY
+        SET @FileDateTime = CAST(
+            SUBSTRING(@TimestampStr, 1, 4) + '-' + 
+            SUBSTRING(@TimestampStr, 5, 2) + '-' + 
+            SUBSTRING(@TimestampStr, 7, 2) + ' ' + 
+            SUBSTRING(@TimestampStr, 9, 2) + ':' + 
+            SUBSTRING(@TimestampStr, 11, 2) AS DATETIME);
+    END TRY
+    BEGIN CATCH
+        PRINT 'Warning: Could not parse timestamp from file: ' + @TrnFileName + '. Skipping file.';
+        FETCH NEXT FROM trn_cursor INTO @TrnFileName;
+        CONTINUE;
+    END CATCH
+
+    -- Apply log only if @MinDateTime is NULL or file's timestamp is >= @MinDateTime
+    IF @MinDateTime IS NULL OR @FileDateTime >= @MinDateTime
+    BEGIN
+        SET @FullTrnPath = @TrnFilePath + @TrnFileName;
+        
+        -- Restore transaction log
+        SET @SqlCommand = N'RESTORE LOG [' + @DatabaseName + '] FROM DISK = @TrnPath WITH NORECOVERY;';
+        BEGIN TRY
+            EXEC sp_executesql @SqlCommand, N'@TrnPath NVARCHAR(260)', @FullTrnPath;
+            PRINT 'Applied transaction log: ' + @FullTrnPath;
+        END TRY
+        BEGIN CATCH
+            SET @ErrorMessage = ERROR_MESSAGE();
+            RAISERROR ('Failed to apply transaction log %s: %s', 16, 1, @FullTrnPath, @ErrorMessage);
+            CLOSE trn_cursor;
+            DEALLOCATE trn_cursor;
+            DROP TABLE #TrnFiles;
+            RETURN;
+        END CATCH
+    END
+    ELSE
+    BEGIN
+        PRINT 'Skipped transaction log (before MinDateTime): ' + @TrnFileName;
+    END
+    
+    FETCH NEXT FROM trn_cursor INTO @TrnFileName;
+END
+
+CLOSE trn_cursor;
+DEALLOCATE trn_cursor;
+
+-- Clean up
+DROP TABLE #TrnFiles;
+
+-- Database is left in RESTORING state (NORECOVERY) for log shipping
+PRINT 'Log shipping reinitialization completed. Database ' + @DatabaseName + ' is in RESTORING state, ready to resume log shipping.';
