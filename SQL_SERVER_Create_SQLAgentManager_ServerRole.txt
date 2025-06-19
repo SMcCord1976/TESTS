@@ -1,0 +1,83 @@
+USE [master];
+GO
+
+-- Create the custom server-level role
+IF NOT EXISTS (SELECT * FROM sys.server_principals WHERE name = 'SQLAgentManager')
+BEGIN
+    CREATE SERVER ROLE SQLAgentManager;
+END
+GO
+
+-- Create a login for the server role to map to msdb
+IF NOT EXISTS (SELECT * FROM sys.server_principals WHERE name = 'SQLAgentManagerLogin')
+BEGIN
+    CREATE LOGIN SQLAgentManagerLogin WITH PASSWORD = 'SecureP@ssw0rd2025!', CHECK_POLICY = OFF;
+    ALTER SERVER ROLE SQLAgentManager ADD MEMBER SQLAgentManagerLogin;
+END
+GO
+
+-- Grant VIEW SERVER STATE for viewing job execution status
+GRANT VIEW SERVER STATE TO SQLAgentManager;
+GO
+
+-- Switch to msdb database
+USE [msdb];
+GO
+
+-- Create a user for the login in msdb
+IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'SQLAgentManagerLogin')
+BEGIN
+    CREATE USER SQLAgentManagerLogin FOR LOGIN SQLAgentManagerLogin;
+END
+GO
+
+-- Assign SQLAgentOperatorRole for broad job management
+EXEC sp_addrolemember @rolename = 'SQLAgentOperatorRole', @membername = 'SQLAgentManagerLogin';
+GO
+
+-- Grant additional permissions for full job, schedule, operator, and alert management
+GRANT EXECUTE ON msdb.dbo.sp_add_job TO SQLAgentManagerLogin;
+GRANT EXECUTE ON msdb.dbo.sp_delete_job TO SQLAgentManagerLogin;
+GRANT EXECUTE ON msdb.dbo.sp_update_job TO SQLAgentManagerLogin;
+GRANT EXECUTE ON msdb.dbo.sp_start_job TO SQLAgentManagerLogin;
+GRANT EXECUTE ON msdb.dbo.sp_stop_job TO SQLAgentManagerLogin;
+GRANT EXECUTE ON msdb.dbo.sp_add_jobschedule TO SQLAgentManagerLogin;
+GRANT EXECUTE ON msdb.dbo.sp_delete_jobschedule TO SQLAgentManagerLogin;
+GRANT EXECUTE ON msdb.dbo.sp_update_jobschedule TO SQLAgentManagerLogin;
+GRANT EXECUTE ON msdb.dbo.sp_add_jobstep TO SQLAgentManagerLogin;
+GRANT EXECUTE ON msdb.dbo.sp_delete_jobstep TO SQLAgentManagerLogin;
+GRANT EXECUTE ON msdb.dbo.sp_update_jobstep TO SQLAgentManagerLogin;
+GRANT EXECUTE ON msdb.dbo.sp_help_job TO SQLAgentManagerLogin;
+GRANT EXECUTE ON msdb.dbo.sp_help_jobhistory TO SQLAgentManagerLogin;
+GRANT EXECUTE ON msdb.dbo.sp_add_alert TO SQLAgentManagerLogin;
+GRANT EXECUTE ON msdb.dbo.sp_delete_alert TO SQLAgentManagerLogin;
+GRANT EXECUTE ON msdb.dbo.sp_update_alert TO SQLAgentManagerLogin;
+GRANT EXECUTE ON msdb.dbo.sp_add_operator TO SQLAgentManagerLogin;
+GRANT EXECUTE ON msdb.dbo.sp_delete_operator TO SQLAgentManagerLogin;
+GRANT EXECUTE ON msdb.dbo.sp_update_operator TO SQLAgentManagerLogin;
+GRANT EXECUTE ON msdb.dbo.sp_manage_jobs_by_login TO SQLAgentManagerLogin;
+GRANT EXECUTE ON msdb.dbo.sp_notify_operator TO SQLAgentManagerLogin;
+GO
+
+-- Grant SELECT permissions on system tables for viewing job details
+GRANT SELECT ON msdb.dbo.sysjobs TO SQLAgentManagerLogin;
+GRANT SELECT ON msdb.dbo.sysjobsteps TO SQLAgentManagerLogin;
+GRANT SELECT ON msdb.dbo.sysjobschedules TO SQLAgentManagerLogin;
+GRANT SELECT ON msdb.dbo.sysjobhistory TO SQLAgentManagerLogin;
+GRANT SELECT ON msdb.dbo.sysalerts TO SQLAgentManagerLogin;
+GRANT SELECT ON msdb.dbo.sysoperators TO SQLAgentManagerLogin;
+GO
+
+-- Return to master database
+USE [master];
+GO
+
+-- Example: Assign the role to a login (replace 'YourLoginName' with the actual login)
+-- ALTER SERVER ROLE SQLAgentManager ADD MEMBER YourLoginName;
+-- GO
+
+-- Verify the role permissions
+SELECT * FROM sys.server_permissions WHERE grantee_principal_id = SUSER_SID('SQLAgentManager');
+SELECT * FROM msdb.sys.database_permissions WHERE grantee_principal_id = USER_ID('SQLAgentManagerLogin');
+SELECT * FROM msdb.sys.database_role_members WHERE member_principal_id = USER_ID('SQLAgentManagerLogin');
+GO
