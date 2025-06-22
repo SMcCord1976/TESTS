@@ -1,0 +1,248 @@
+/*
+    T-SQL script to set up infrastructure for Integration Framework to invoke and monitor SQL Server Agent jobs.
+    Created for BRAVO context on Central Management Server.
+    Includes login, ApprovedJobs table, stored procedure, custom role, status view, and auditing.
+*/
+
+-- 1. Create SQL-authenticated login for Integration Framework
+IF NOT EXISTS (SELECT * FROM sys.server_principals WHERE name = 'integration_framework_admin')
+BEGIN
+    CREATE LOGIN integration_framework_admin 
+    WITH PASSWORD = 'c.d@p2C&PT5Z%Z:>N{3u', -- Replace with a strong password
+         CHECK_EXPIRATION = OFF,
+         CHECK_POLICY = ON;
+END;
+GO
+
+-- Create corresponding user in msdb database
+USE msdb;
+GO
+IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'integration_framework_admin')
+BEGIN
+    CREATE USER integration_framework_admin FOR LOGIN integration_framework_admin;
+END;
+GO
+
+-- Grant new user the ability to execute jobs
+
+ALTER ROLE [SQLAgentUserRole] ADD MEMBER [integration_framework_admin]
+GO
+
+
+
+-- 2. Create ApprovedJobs table
+IF OBJECT_ID('dbo.ApprovedJobs', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.ApprovedJobs
+    (
+        job_id INT IDENTITY(1,1) PRIMARY KEY,
+        job_name NVARCHAR(128) NOT NULL UNIQUE,
+        create_date DATETIME2 DEFAULT SYSDATETIME(),
+        last_modified_date DATETIME2 DEFAULT SYSDATETIME(),
+        is_active BIT DEFAULT 1, -- Allows disabling jobs without deleting
+        CONSTRAINT CHK_JobName CHECK (job_name <> '')
+    );
+
+    -- Create index for faster lookups
+    CREATE NONCLUSTERED INDEX IX_ApprovedJobs_JobName 
+    ON dbo.ApprovedJobs(job_name) 
+    WHERE is_active = 1;
+END;
+GO
+
+-- 3. Create stored procedure to invoke approved jobs
+IF OBJECT_ID('dbo.InvokeApprovedJob', 'P') IS NOT NULL
+    DROP PROCEDURE dbo.InvokeApprovedJob;
+GO
+CREATE PROCEDURE dbo.InvokeApprovedJob
+    @JobName NVARCHAR(128),
+    @InvokedBy NVARCHAR(128) = 'Unknown' -- For auditing
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @ErrorMessage NVARCHAR(MAX);
+    DECLARE @JobID UNIQUEIDENTIFIER;
+    DECLARE @LogID INT;
+
+    BEGIN TRY
+        -- Validate job exists in ApprovedJobs and is active
+        IF NOT EXISTS (
+            SELECT 1 
+            FROM dbo.ApprovedJobs 
+            WHERE job_name = @JobName 
+            AND is_active = 1
+        )
+        BEGIN
+            THROW 50001, 'Job name is not approved or is inactive.', 1;
+        END;
+
+        -- Check if job exists in sysjobs
+        SELECT @JobID = job_id 
+        FROM msdb.dbo.sysjobs 
+        WHERE name = @JobName;
+
+        IF @JobID IS NULL
+        BEGIN
+            THROW 50002, 'Job does not exist in SQL Server Agent.', 1;
+        END;
+
+        -- Check if job is already running
+        IF EXISTS (
+            SELECT 1 
+            FROM msdb.dbo.sysjobactivity ja
+            WHERE ja.job_id = @JobID
+            AND ja.start_execution_date IS NOT NULL
+            AND ja.stop_execution_date IS NULL
+        )
+        BEGIN
+            THROW 50003, 'Job is already running.', 1;
+        END;
+
+        -- Log invocation attempt
+        INSERT INTO dbo.JobInvocationLog (
+            JobName, 
+            InvokedBy, 
+            InvocationTime, 
+            Outcome
+        )
+        VALUES (
+            @JobName, 
+            @InvokedBy, 
+            SYSDATETIME(), 
+            'Attempted'
+        );
+        SET @LogID = SCOPE_IDENTITY();
+
+        -- Start the job
+        EXEC msdb.dbo.sp_start_job @job_name = @JobName;
+
+        -- Update log with success
+        UPDATE dbo.JobInvocationLog
+        SET Outcome = 'Started'
+        WHERE LogID = @LogID;
+    END TRY
+    BEGIN CATCH
+        -- Capture error details
+        SET @ErrorMessage = ERROR_MESSAGE();
+
+        -- Update log with failure
+        IF @LogID IS NOT NULL
+        BEGIN
+            UPDATE dbo.JobInvocationLog
+            SET Outcome = 'Failed',
+                ErrorMessage = @ErrorMessage
+            WHERE LogID = @LogID;
+        END;
+
+        -- Rethrow the error
+        THROW;
+    END CATCH;
+END;
+GO
+
+-- 4. Create custom role in msdb
+IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'IntegrationFrameworkRole')
+BEGIN
+    CREATE ROLE IntegrationFrameworkRole;
+END;
+
+-- Grant permissions to the role
+GRANT EXECUTE ON dbo.InvokeApprovedJob TO IntegrationFrameworkRole;
+GRANT SELECT ON dbo.vw_IntegrationFrameworkJobStatus TO IntegrationFrameworkRole;
+GO
+
+-- Assign user to the role
+ALTER ROLE IntegrationFrameworkRole ADD MEMBER integration_framework_admin;
+GO
+
+-- 5. Create view for job status and history
+IF OBJECT_ID('dbo.vw_IntegrationFrameworkJobStatus', 'V') IS NOT NULL
+    DROP VIEW dbo.vw_IntegrationFrameworkJobStatus;
+GO
+CREATE VIEW dbo.vw_IntegrationFrameworkJobStatus
+AS
+SELECT 
+    j.name AS JobName,
+    j.job_id AS JobID,
+    --CONVERT(DATE, h.run_date) AS RunDate,
+	h.run_date,
+    STUFF(
+        RIGHT('000000' + CAST(h.run_time AS VARCHAR(6)), 6),
+        3, 0, ':'
+    ) + ':' + 
+    RIGHT('00' + CAST(h.run_time % 100 AS VARCHAR(2)), 2) AS RunTime,
+    h.run_duration AS RunDurationSeconds,
+    CASE h.run_status
+        WHEN 0 THEN 'Failed'
+        WHEN 1 THEN 'Succeeded'
+        WHEN 2 THEN 'Retry'
+        WHEN 3 THEN 'Canceled'
+        WHEN 4 THEN 'In Progress'
+        ELSE 'Unknown'
+    END AS RunStatus,
+    h.message AS StatusMessage,
+    CASE 
+        WHEN a.start_execution_date IS NOT NULL 
+        AND a.stop_execution_date IS NULL THEN 'Running'
+        ELSE 'Idle'
+    END AS CurrentStatus,
+    a.start_execution_date AS LastStartTime,
+    a.stop_execution_date AS LastStopTime
+FROM msdb.dbo.sysjobs j
+INNER JOIN dbo.ApprovedJobs aj
+    ON j.name = aj.job_name
+LEFT JOIN msdb.dbo.sysjobhistory h
+    ON j.job_id = h.job_id
+    AND h.step_id = 0 -- Job-level history only
+LEFT JOIN msdb.dbo.sysjobactivity a
+    ON j.job_id = a.job_id
+WHERE aj.is_active = 1;
+GO
+
+-- 6. Create auditing table for job invocations
+IF OBJECT_ID('dbo.JobInvocationLog', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.JobInvocationLog
+    (
+        LogID INT IDENTITY(1,1) PRIMARY KEY,
+        JobName NVARCHAR(128) NOT NULL,
+        InvokedBy NVARCHAR(128) NOT NULL,
+        InvocationTime DATETIME2 NOT NULL,
+        Outcome NVARCHAR(50) NOT NULL, -- Attempted, Started, Failed
+        ErrorMessage NVARCHAR(MAX) NULL
+    );
+
+    -- Create index for querying logs
+    CREATE NONCLUSTERED INDEX IX_JobInvocationLog_InvocationTime
+    ON dbo.JobInvocationLog(InvocationTime, JobName);
+END;
+GO
+
+-- 7. Insert sample approved jobs (replace with your job names)
+INSERT INTO dbo.ApprovedJobs (job_name, create_date, last_modified_date, is_active)
+VALUES 
+    ('[DBA] - Forced Job Failure Condition - TEST', SYSDATETIME(), SYSDATETIME(), 1),
+    ('[DBA] - [Database Refresh] - Post Restore Processing', SYSDATETIME(), SYSDATETIME(), 0);
+GO
+
+
+SELECT * FROM msdb.dbo.vw_IntegrationFrameworkJobStatus; --Integration Framework View status
+
+SELECT * FROM msdb.dbo.JobInvocationLog --administrative status
+
+
+-- 8. Documentation (as comments)
+/*
+    Usage Instructions for Integration Framework:
+    - Login: Use 'integration_framework_admin' with the provided password.
+    - Invoke Jobs: Call msdb.dbo.InvokeApprovedJob with parameters:
+        @JobName: Name of the approved job (from ApprovedJobs table).
+        @InvokedBy: Identifier for the calling user/process (for auditing).
+      Example:
+        EXEC msdb.dbo.InvokeApprovedJob @JobName = 'SampleMaintenanceJob1', @InvokedBy = 'IntegrationFramework';
+    - Query Status: SELECT * FROM msdb.dbo.vw_IntegrationFrameworkJobStatus;
+    - Notes:
+        - Only jobs in ApprovedJobs with is_active = 1 can be invoked.
+        - Job status is asynchronous; poll the view for updates.
+        - Check JobInvocationLog for invocation history and errors.
+*/
