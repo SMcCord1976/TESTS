@@ -1,0 +1,40 @@
+--Download Cosmos DB ODBC Driver (64Bit) 
+
+--Install ODBC Driver
+
+--Configure ODBC Driver via ODBC Data Sources Adminstration application
+
+--SYSTEM DSN PROPERTIES:
+
+--2.00.06.1005
+
+--https://zbibaoazcdb1dev.documents.azure.com:443/
+
+--1O885njK5gIYScGjrszDq9jEuBCSdOy0AB5XFFcGySsM7RLy8F73fsJIxfWgMrRqhm1J6xjUwXtAAXmbufBx6Q==
+
+--Schema Editor
+
+--Create A New Schema Definition
+
+--Select Cosmos DB Container to "Sample"
+
+--Save configuration as local JSON file
+
+--Create LSO, reference System DSN
+
+
+
+USE [master]
+GO
+
+EXEC master.dbo.sp_addlinkedserver @server = N'COSMOSDB1DEV', @srvproduct=N'', @provider=N'MSDASQL', @datasrc=N'SDSNzbibaoazcdb1dev'
+
+EXEC master.dbo.sp_addlinkedsrvlogin @rmtsrvname=N'COSMOSDB1DEV', @useself=N'FALSE', @locallogin=NULL, @rmtuser=NULL, @rmtpassword=NULL
+
+GO
+
+
+SELECT top 5* FROM COSMOSDB1DEV.apollo.Tether.Tether
+where ClaimDate >= getdate() - 25
+order by ClaimDate desc
+
