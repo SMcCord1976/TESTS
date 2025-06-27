@@ -1,0 +1,36 @@
+
+--Description
+--Need to complete a query of policies possibly affected by schedule mods not triggering per UW rules.
+--Query of policies with Schedule Mod falling off on endorsement and Modifiers page not correctly populating during endorsement.
+
+--Acceptance Criteria
+--Complete a query for all policies with Schedule Mod falling off on endorsement and Modifiers page is not correctly populating during endorsement. 
+--Find policies where CostNew was Null and MinCostNew returned 0
+--Provide these policies in an excel spreadsheet with the following headers:
+--Tether ID
+--Policy number
+--Effective date of Quote or policy (MM/DD/YYYY)
+--Policy State 
+--Policy Status
+--Term
+
+
+
+
+DECLARE @entityTypeApplication BIGINT = 4500;
+
+SELECT t.Id AS TetherId
+	,tst.Code AS PolicyStatus
+	,coalesce(t.PolicyNumber, t.ApplicationNumber) AS PolicyNumber
+	,t.EffectiveDate
+	,t.TermId AS Term
+	,sp.Code AS [State]
+FROM dbo.[adfRiskEntityExport_a994a2ae-ee34-41a0-a72c-2913a6d9bf05] s
+JOIN tether.Tether t ON t.Id = json_value(s.JSONDocument, '$.TetherId')
+	AND t.CurrentApplicationId = json_value(s.JSONDocument, '$.EntityId')
+	AND json_value(s.JSONDocument, '$.EntityTypeId') = @entityTypeApplication
+JOIN tether.TetherApplicationRatableObject taro ON t.Id = taro.Tetherid
+	AND t.CurrentApplicationId = taro.ApplicationId
+	AND t.CurrentRatableObjectId = taro.RatableObjectId
+JOIN tether.TetherStatusType tst ON taro.TetherStatusTypeId = tst.Id
+JOIN location.StateProvince sp ON t.GoverningStateId = sp.Id;
