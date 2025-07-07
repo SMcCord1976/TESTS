@@ -1,0 +1,129 @@
+/*
+    Script to execute Ola Hallengren's IndexOptimize on all user databases
+    (except cdcn_dba_utilities) on Azure SQL logical server u2-sql-prod.database.windows.net
+    via Central Management Server (AZRDBA01) using individual Linked Servers.
+
+    Environment:
+    - CMS: SQL Server 2022 (AZRDBA01)
+    - Linked Servers: Named CMS_u2_PROD_[databasename]
+    - Authentication: cms_admin (db_owner on each database)
+    - Logging: AZRDBA01.cdcn_dba_utilities.AzureMaintenanceLog
+*/
+
+-- Ensure logging table exists in AZRDBA01.cdcn_dba_utilities
+USE [cdcn_dba_utilities];
+GO
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'AzureMaintenanceLog')
+BEGIN
+    CREATE TABLE dbo.AzureMaintenanceLog (
+        LogID INT IDENTITY(1,1) PRIMARY KEY,
+        ServerName NVARCHAR(128),
+        DatabaseName NVARCHAR(128),
+        ExecutionStart DATETIME,
+        ExecutionEnd DATETIME,
+        Status NVARCHAR(50),
+        ErrorMessage NVARCHAR(MAX),
+        CommandExecuted NVARCHAR(MAX)
+    );
+END;
+GO
+
+-- Main script to execute IndexOptimize
+DECLARE @AzureServer NVARCHAR(128) = 'u2-sql-preprod.database.windows.net';
+DECLARE @SQL NVARCHAR(MAX);
+DECLARE @DatabaseName NVARCHAR(128);
+DECLARE @LinkedServer NVARCHAR(128);
+DECLARE @ExecutionStart DATETIME;
+DECLARE @ExecutionEnd DATETIME;
+DECLARE @ErrorMessage NVARCHAR(MAX);
+DECLARE @Command NVARCHAR(MAX);
+
+-- Cursor to loop through user databases on the Azure SQL logical server
+-- Use any Linked Server to query sys.databases (assumes all have same database list)
+DECLARE db_cursor CURSOR FOR
+    SELECT name
+    --FROM OPENQUERY([CMS_u2_PreProd_master], 'SELECT name FROM sys.databases WHERE database_id > 4 AND state_desc = ''ONLINE'' AND name != ''cdcn_dba_utilities''')
+	FROM OPENQUERY([CMS_u2_sql_PreProd_master], 'SELECT name FROM sys.databases WHERE database_id > 4 AND state_desc = ''ONLINE'' AND name = ''U2Role''')
+
+
+BEGIN TRY
+    -- Open the cursor
+    OPEN db_cursor;
+    FETCH NEXT FROM db_cursor INTO @DatabaseName;
+
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        SET @ExecutionStart = GETDATE();
+        SET @ErrorMessage = NULL;
+        SET @Command = NULL;
+
+        -- Construct the Linked Server name
+        SET @LinkedServer = 'CMS_u2_sql_PreProd_' + @DatabaseName; ----/* <--- CHANGE LSO NAMING PATTERN */
+
+        -- Build the IndexOptimize command for the current database
+        SET @Command = '
+            EXECUTE [' + @DatabaseName + '].dbo.IndexOptimize
+                @Databases = ''' + @DatabaseName + ''',
+                @FragmentationLow = NULL,
+                @FragmentationMedium = ''INDEX_REORGANIZE,INDEX_REBUILD_ONLINE'',
+                @FragmentationHigh = ''INDEX_REBUILD_ONLINE'',
+                @FragmentationLevel1 = 50,
+                @FragmentationLevel2 = 80,
+                @MinNumberOfPages = 40000,
+                @LogToTable = ''Y'',
+                @Resumable = ''Y''';
+
+        -- Execute the command via the Linked Server
+        SET @SQL = 'EXEC(''' + REPLACE(@Command, '''', '''''') + ''') AT [' + @LinkedServer + ']';
+
+        BEGIN TRY
+            EXEC sp_executesql @SQL;
+            SET @ExecutionEnd = GETDATE();
+            -- Log success
+            INSERT INTO [cdcn_dba_utilities].dbo.AzureMaintenanceLog (
+                ServerName, DatabaseName, ExecutionStart, ExecutionEnd, Status, ErrorMessage, CommandExecuted
+            )
+            VALUES (
+                @AzureServer, @DatabaseName, @ExecutionStart, @ExecutionEnd, 'Success', NULL, @Command
+            );
+        END TRY
+        BEGIN CATCH
+            SET @ExecutionEnd = GETDATE();
+            SET @ErrorMessage = ERROR_MESSAGE();
+            -- Log failure
+            INSERT INTO [cdcn_dba_utilities].dbo.AzureMaintenanceLog (
+                ServerName, DatabaseName, ExecutionStart, ExecutionEnd, Status, ErrorMessage, CommandExecuted
+            )
+            VALUES (
+                @AzureServer, @DatabaseName, @ExecutionStart, @ExecutionEnd, 'Failed', @ErrorMessage, @Command
+            );
+        END CATCH;
+
+        FETCH NEXT FROM db_cursor INTO @DatabaseName;
+    END;
+
+    -- Clean up
+    CLOSE db_cursor;
+    DEALLOCATE db_cursor;
+END TRY
+BEGIN CATCH
+    -- Log cursor-level error
+    SET @ErrorMessage = ERROR_MESSAGE();
+    INSERT INTO [cdcn_dba_utilities].dbo.AzureMaintenanceLog (
+        ServerName, DatabaseName, ExecutionStart, ExecutionEnd, Status, ErrorMessage, CommandExecuted
+    )
+    VALUES (
+        @AzureServer, NULL, GETDATE(), GETDATE(), 'Failed', @ErrorMessage, NULL
+    );
+
+    -- Clean up if cursor is still open
+    IF CURSOR_STATUS('global', 'db_cursor') >= 0
+    BEGIN
+        CLOSE db_cursor;
+        DEALLOCATE db_cursor;
+    END;
+END CATCH;
+
+-- Query the log for review
+SELECT * FROM [cdcn_dba_utilities].dbo.AzureMaintenanceLog ORDER BY LogID DESC;
+GO
